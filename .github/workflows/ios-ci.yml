@@ -1,0 +1,91 @@
+name: iOS CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "agent/**"
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          xcodebuild -list -project "PsychonautWiki Journal.xcodeproj"
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -resolvePackageDependencies \
+            -project "PsychonautWiki Journal.xcodeproj" \
+            -scheme "PsychonautWiki Journal"
+
+      - name: Select simulator
+        id: simulator
+        shell: bash
+        run: |
+          DEVICE_ID=$(python3 - <<'PY'
+          import json, subprocess
+          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
+          preferred = []
+          fallback = []
+          for runtime, devices in data.get("devices", {}).items():
+              if "iOS" not in runtime:
+                  continue
+              for device in devices:
+                  if not device.get("isAvailable"):
+                      continue
+                  fallback.append(device)
+                  if device.get("name", "").startswith("iPhone"):
+                      preferred.append(device)
+          chosen = (preferred or fallback)[0]
+          print(chosen["udid"])
+          PY
+          )
+          echo "id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
+          echo "Using simulator $DEVICE_ID"
+
+      - name: Build app for simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "PsychonautWiki Journal.xcodeproj" \
+            -scheme "PsychonautWiki Journal" \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee build.log
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "PsychonautWiki Journal.xcodeproj" \
+            -scheme "JournalTests" \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            test | tee tests.log
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ci-logs-${{ github.run_number }}
+          path: |
+            build.log
+            tests.log
+          if-no-files-found: ignore
