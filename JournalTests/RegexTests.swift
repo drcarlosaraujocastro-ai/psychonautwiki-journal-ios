@@ -18,20 +18,36 @@
 import XCTest
 
 final class RegexTests: XCTestCase {
-    func testWildcardMatcherDoesNotMatchUnrelatedName() {
-        XCTAssertFalse(
-            InteractionChecker.hasXAndMatches(
-                wordWithX: "Dox",
-                matchWith: "Oxycodone"
-            )
-        )
+    func testDOxFamily() {
+        XCTAssertTrue(InteractionChecker.hasXAndMatches(wordWithX: "DOx", matchWith: "DOM"))
+        XCTAssertTrue(InteractionChecker.hasXAndMatches(wordWithX: "DOx", matchWith: "DOB"))
+        XCTAssertFalse(InteractionChecker.hasXAndMatches(wordWithX: "DOx", matchWith: "Oxycodone"))
     }
 
-    func testMatcherRequiresWildcardMarker() {
+    func test2CFamily() {
+        XCTAssertTrue(InteractionChecker.hasXAndMatches(wordWithX: "2C-x", matchWith: "2C-B"))
+        XCTAssertTrue(InteractionChecker.hasXAndMatches(wordWithX: "2C-T-X", matchWith: "2C-T-7"))
+    }
+
+    func testNBOMeFamily() {
+        XCTAssertTrue(InteractionChecker.hasXAndMatches(wordWithX: "25x-NBOMe", matchWith: "25I-NBOMe"))
+    }
+
+    func testMeOFamily() {
+        XCTAssertTrue(InteractionChecker.hasXAndMatches(wordWithX: "5-MeO-xxT", matchWith: "5-MeO-DMT"))
+    }
+
+    func testOrdinaryNamesContainingXAreNotWildcardPatterns() {
         XCTAssertFalse(
             InteractionChecker.hasXAndMatches(
-                wordWithX: "Same",
-                matchWith: "Same"
+                wordWithX: "Dextromethorphan",
+                matchWith: "Dextromethorphan"
+            )
+        )
+        XCTAssertFalse(
+            InteractionChecker.hasXAndMatches(
+                wordWithX: "Oxycodone",
+                matchWith: "Oxycodone"
             )
         )
     }
@@ -39,8 +55,8 @@ final class RegexTests: XCTestCase {
     func testWildcardMatcherIsAnchored() {
         XCTAssertFalse(
             InteractionChecker.hasXAndMatches(
-                wordWithX: "Dox",
-                matchWith: "prefix-DOAB-suffix"
+                wordWithX: "DOx",
+                matchWith: "prefix-DOM-suffix"
             )
         )
     }

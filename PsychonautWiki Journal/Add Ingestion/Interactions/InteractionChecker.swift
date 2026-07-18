@@ -151,11 +151,60 @@ enum InteractionChecker {
     }
 
     static func hasXAndMatches(wordWithX: String, matchWith unchangedWord: String) -> Bool {
-        guard wordWithX.contains("x") else { return false }
-        let modifiedPattern = "^" + wordWithX.replacingOccurrences(of: "x", with: "[\\S]{2}") + "$"
-        guard let regex = try? NSRegularExpression(pattern: modifiedPattern, options: .caseInsensitive) else { return false }
+        guard let pattern = wildcardPattern(from: wordWithX) else { return false }
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { return false }
         let range = NSRange(location: 0, length: unchangedWord.utf16.count)
         return regex.firstMatch(in: unchangedWord, options: [], range: range) != nil
+    }
+
+    /// PsychonautWiki uses x/X as a family placeholder in labels such as
+    /// `DOx`, `2C-x`, `25x-NBOMe` and `5-MeO-xxT`.
+    ///
+    /// The previous implementation replaced every lowercase x with exactly two
+    /// non-space characters. That failed to match real members such as DOM and
+    /// 2C-B, while also risking false positives in ordinary names that contain
+    /// the letter x, such as Oxycodone or Dextromethorphan.
+    private static func wildcardPattern(from value: String) -> String? {
+        let characters = Array(value)
+        var index = 0
+        var pattern = "^"
+        var containsWildcard = false
+
+        while index < characters.count {
+            let character = characters[index]
+            guard character == "x" || character == "X" else {
+                pattern += NSRegularExpression.escapedPattern(for: String(character))
+                index += 1
+                continue
+            }
+
+            var runEnd = index
+            while runEnd < characters.count,
+                  characters[runEnd] == "x" || characters[runEnd] == "X" {
+                runEnd += 1
+            }
+
+            let previous = index > 0 ? characters[index - 1] : nil
+            let next = runEnd < characters.count ? characters[runEnd] : nil
+            let runLength = runEnd - index
+            let isPlaceholder = runLength > 1
+                || previous == "-"
+                || previous?.isNumber == true
+                || next == "-"
+                || next == nil
+
+            if isPlaceholder {
+                pattern += ".+"
+                containsWildcard = true
+            } else {
+                pattern += NSRegularExpression.escapedPattern(
+                    for: String(characters[index..<runEnd])
+                )
+            }
+            index = runEnd
+        }
+
+        return containsWildcard ? pattern + "$" : nil
     }
 
     private static func extendAndCleanInteractions(interactions: [String]) -> [String] {

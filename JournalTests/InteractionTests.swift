@@ -26,18 +26,11 @@ final class InteractionTests: XCTestCase {
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Nothing", bName: "MDMA"), nil)
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Oxycodone", bName: "MDMA"), .uncertain)
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Amphetamine", bName: "Dextromethorphan"), .unsafe)
+        XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Amphetamine", bName: "DOM"), .unsafe)
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Heroin", bName: "Cocaine"), .dangerous)
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Heroin", bName: "Grapefruit"), .dangerous)
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Heroin", bName: "Nothing"), nil)
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Pregabalin", bName: "LSD"), nil)
         XCTAssertEqual(InteractionChecker.getInteractionTypeBetween(aName: "Grapefruit", bName: "Heroin"), .dangerous)
-    }
-
-    func testDOxFamilyRecognizesDOM() throws {
-        XCTExpectFailure("Known defect: the legacy wildcard matcher does not currently map DOx to DOM.")
-        XCTAssertEqual(
-            InteractionChecker.getInteractionTypeBetween(aName: "Amphetamine", bName: "DOM"),
-            .unsafe
-        )
     }
 }
