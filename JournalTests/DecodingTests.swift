@@ -14,33 +14,27 @@
 // You should have received a copy of the GNU General Public License
 // along with PsychonautWiki Journal. If not, see https://www.gnu.org/licenses/gpl-3.0.en.html.
 
-import CoreData
 @testable import Journal
 import XCTest
 
-class DecodingTests: XCTestCase {
-    func testRoaDecoding() async throws {
-        let data = getInitialData()
+final class DecodingTests: XCTestCase {
+    func testRoaDecoding() throws {
+        let data = try getInitialData()
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .deferredToDate
         decoder.keyDecodingStrategy = .useDefaultKeys
-        do {
-            let roa = try decoder.decode(RoaDecodable.self, from: data)
-            print(roa)
-        } catch {
-            fatalError(String(describing: error))
-        }
+
+        let result = try decoder.decode(RoaDecodable.self, from: data)
+        XCTAssertEqual(result.roas.count, 5)
     }
 
-    private func getInitialData() -> Data {
+    private func getInitialData() throws -> Data {
         let testBundle = Bundle(for: type(of: self))
-        guard let url = testBundle.url(forResource: "Roa", withExtension: "json") else {
-            fatalError("Failed to locate Roa.json.")
-        }
-        guard let data = try? Data(contentsOf: url) else {
-            fatalError("Failed to load Roa.json.")
-        }
-        return data
+        let url = try XCTUnwrap(
+            testBundle.url(forResource: "Roa", withExtension: "json"),
+            "Failed to locate Roa.json."
+        )
+        return try Data(contentsOf: url)
     }
 }
 
