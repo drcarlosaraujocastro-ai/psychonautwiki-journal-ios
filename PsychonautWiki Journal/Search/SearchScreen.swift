@@ -18,7 +18,7 @@ import AppIntents
 import SwiftUI
 
 struct SearchScreen: View {
-    @FocusState private var isSearchFocused: Bool
+    @FocusState var isSearchFocused: Bool
     @Binding var searchText: String
     @Binding var selectedCategories: [String]
     let clearCategories: () -> Void
