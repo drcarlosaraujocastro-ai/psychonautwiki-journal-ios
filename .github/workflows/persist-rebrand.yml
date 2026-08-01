@@ -1,0 +1,45 @@
+name: Persist app identity
+
+on:
+  push:
+    branches:
+      - agent/phase-2-native-app
+    paths:
+      - scripts/rebrand_project.sh
+      - .github/workflows/persist-rebrand.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  persist:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: macos-15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/phase-2-native-app
+          fetch-depth: 0
+
+      - name: Apply permanent identity
+        run: bash scripts/rebrand_project.sh
+
+      - name: Validate project syntax
+        run: plutil -lint "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
+
+      - name: Commit generated project changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Project identity is already persisted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            "PsychonautWiki Journal.xcodeproj/project.pbxproj" \
+            "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
+          git commit -m "Persist Psychonaut Journal identity [skip ci]"
+          git push origin HEAD:agent/phase-2-native-app
