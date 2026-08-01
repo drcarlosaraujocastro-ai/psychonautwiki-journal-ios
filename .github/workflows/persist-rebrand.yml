@@ -1,4 +1,4 @@
-name: Persist app identity
+name: Persist generated app changes
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - agent/phase-2-native-app
     paths:
       - scripts/rebrand_project.sh
+      - scripts/port_psylog_compatibility.py
       - .github/workflows/persist-rebrand.yml
   workflow_dispatch:
 
@@ -26,20 +27,32 @@ jobs:
       - name: Apply permanent identity
         run: bash scripts/rebrand_project.sh
 
-      - name: Validate project syntax
-        run: plutil -lint "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
+      - name: Port selected PsyLog compatibility fixes
+        run: python3 scripts/port_psylog_compatibility.py
 
-      - name: Commit generated project changes
+      - name: Validate generated files
+        run: |
+          plutil -lint "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
+          grep -q "normalizeModernJournalExport" \
+            "PsychonautWiki Journal/Settings/Settings-ViewModel.swift"
+          grep -q "drcarlosaraujocastro-ai/psychonautwiki-journal-ios" \
+            "PsychonautWiki Journal/Settings/SettingsScreen.swift"
+
+      - name: Commit generated source changes
         shell: bash
         run: |
           if git diff --quiet; then
-            echo "Project identity is already persisted."
+            echo "Generated project changes are already persisted."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
             "PsychonautWiki Journal.xcodeproj/project.pbxproj" \
-            "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
-          git commit -m "Persist Psychonaut Journal identity [skip ci]"
+            "PsychonautWiki Journal/PsychonautWiki Journal.entitlements" \
+            "PsychonautWiki Journal/Settings/Settings-ViewModel.swift" \
+            "PsychonautWiki Journal/Settings/SettingsScreen.swift" \
+            "PsychonautWiki Journal/Safer/Screens/TestingServicesScreen.swift" \
+            "PsychonautWiki Journal/Settings/Components/Share/ShareScreen.swift"
+          git commit -m "Persist native identity and PsyLog compatibility [skip ci]"
           git push origin HEAD:agent/phase-2-native-app
