@@ -54,5 +54,5 @@ jobs:
             "PsychonautWiki Journal/Settings/SettingsScreen.swift" \
             "PsychonautWiki Journal/Safer/Screens/TestingServicesScreen.swift" \
             "PsychonautWiki Journal/Settings/Components/Share/ShareScreen.swift"
-          git commit -m "Persist native identity and PsyLog compatibility [skip ci]"
+          git commit -m "Persist native identity and PsyLog compatibility"
           git push origin HEAD:agent/phase-2-native-app
