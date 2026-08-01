@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - "agent/**"
+  workflow_dispatch:
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -20,11 +21,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show toolchain
+      - name: Apply PsicoNorte identifiers
+        run: bash scripts/rebrand_project.sh
+
+      - name: Show toolchain and project
         run: |
           xcodebuild -version
           swift --version
           xcodebuild -list -project "PsychonautWiki Journal.xcodeproj"
+          grep -nE "DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER" \
+            "PsychonautWiki Journal.xcodeproj/project.pbxproj"
 
       - name: Resolve Swift packages
         run: |
@@ -66,6 +72,7 @@ jobs:
             -scheme "PsychonautWiki Journal" \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}" \
+            -derivedDataPath DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             build | tee build.log
 
@@ -77,8 +84,24 @@ jobs:
             -scheme "JournalTests" \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}" \
+            -derivedDataPath DerivedData \
             CODE_SIGNING_ALLOWED=NO \
             test | tee tests.log
+
+      - name: Package simulator build
+        if: success()
+        run: |
+          APP_PATH=$(find DerivedData/Build/Products/Debug-iphonesimulator -maxdepth 1 -name "*.app" -type d | head -n 1)
+          test -n "$APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" PsychonautJournal-Simulator.zip
+
+      - name: Upload simulator app
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psychonaut-journal-simulator-${{ github.run_number }}
+          path: PsychonautJournal-Simulator.zip
+          if-no-files-found: error
 
       - name: Upload logs
         if: always()
