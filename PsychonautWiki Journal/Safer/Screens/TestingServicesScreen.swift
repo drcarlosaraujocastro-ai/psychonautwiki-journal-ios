@@ -186,7 +186,7 @@ struct TestingServicesScreen: View {
                 )
             }
             Section {
-                Link(destination: URL(string: "https://t.me/isaakhanimann")!) {
+                Link(destination: URL(string: "https://github.com/drcarlosaraujocastro-ai/psychonautwiki-journal-ios/issues")!) {
                     Label("Report missing service", systemImage: "plus.bubble.fill")
                 }.foregroundColor(.red)
             }

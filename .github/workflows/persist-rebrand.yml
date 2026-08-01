@@ -1,0 +1,58 @@
+name: Persist generated app changes
+
+on:
+  push:
+    branches:
+      - agent/phase-2-native-app
+    paths:
+      - scripts/rebrand_project.sh
+      - scripts/port_psylog_compatibility.py
+      - .github/workflows/persist-rebrand.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  persist:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: macos-15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/phase-2-native-app
+          fetch-depth: 0
+
+      - name: Apply permanent identity
+        run: bash scripts/rebrand_project.sh
+
+      - name: Port selected PsyLog compatibility fixes
+        run: python3 scripts/port_psylog_compatibility.py
+
+      - name: Validate generated files
+        run: |
+          plutil -lint "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
+          grep -q "normalizeModernJournalExport" \
+            "PsychonautWiki Journal/Settings/Settings-ViewModel.swift"
+          grep -q "drcarlosaraujocastro-ai/psychonautwiki-journal-ios" \
+            "PsychonautWiki Journal/Settings/SettingsScreen.swift"
+
+      - name: Commit generated source changes
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Generated project changes are already persisted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            "PsychonautWiki Journal.xcodeproj/project.pbxproj" \
+            "PsychonautWiki Journal/PsychonautWiki Journal.entitlements" \
+            "PsychonautWiki Journal/Settings/Settings-ViewModel.swift" \
+            "PsychonautWiki Journal/Settings/SettingsScreen.swift" \
+            "PsychonautWiki Journal/Safer/Screens/TestingServicesScreen.swift" \
+            "PsychonautWiki Journal/Settings/Components/Share/ShareScreen.swift"
+          git commit -m "Persist native identity and PsyLog compatibility"
+          git push origin HEAD:agent/phase-2-native-app

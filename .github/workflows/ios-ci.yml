@@ -15,13 +15,13 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 55
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Apply PsicoNorte identifiers
+      - name: Apply Psychonaut Journal identity
         run: bash scripts/rebrand_project.sh
 
       - name: Show toolchain and project
@@ -29,7 +29,7 @@ jobs:
           xcodebuild -version
           swift --version
           xcodebuild -list -project "PsychonautWiki Journal.xcodeproj"
-          grep -nE "DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER" \
+          grep -nE "DEVELOPMENT_TEAM|PRODUCT_BUNDLE_IDENTIFIER|MY_BUNDLE_DISPLAY_NAME" \
             "PsychonautWiki Journal.xcodeproj/project.pbxproj"
 
       - name: Resolve Swift packages
@@ -95,12 +95,48 @@ jobs:
           test -n "$APP_PATH"
           ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" PsychonautJournal-Simulator.zip
 
+      - name: Build unsigned device app
+        if: success()
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "PsychonautWiki Journal.xcodeproj" \
+            -scheme "PsychonautWiki Journal" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath DeviceDerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build | tee device-build.log
+
+      - name: Package unsigned IPA
+        if: success()
+        shell: bash
+        run: |
+          APP_PATH=$(find DeviceDerivedData/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" -type d | head -n 1)
+          test -n "$APP_PATH"
+          rm -rf Payload
+          mkdir Payload
+          ditto "$APP_PATH" "Payload/$(basename "$APP_PATH")"
+          /usr/bin/zip -qry PsychonautJournal-Unsigned.ipa Payload
+          shasum -a 256 PsychonautJournal-Unsigned.ipa > PsychonautJournal-Unsigned.ipa.sha256
+
       - name: Upload simulator app
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: psychonaut-journal-simulator-${{ github.run_number }}
           path: PsychonautJournal-Simulator.zip
+          if-no-files-found: error
+
+      - name: Upload unsigned device package
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: psychonaut-journal-unsigned-ipa-${{ github.run_number }}
+          path: |
+            PsychonautJournal-Unsigned.ipa
+            PsychonautJournal-Unsigned.ipa.sha256
           if-no-files-found: error
 
       - name: Upload logs
@@ -111,4 +147,5 @@ jobs:
           path: |
             build.log
             tests.log
+            device-build.log
           if-no-files-found: ignore
