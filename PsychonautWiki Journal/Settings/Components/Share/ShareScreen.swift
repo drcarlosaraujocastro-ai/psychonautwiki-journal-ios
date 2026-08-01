@@ -37,7 +37,7 @@ struct ShareScreen: View {
                         .scaledToFit()
                         .frame(width: 60, height: 60)
                 }
-                let appStoreLink = "https://apps.apple.com/ch/app/psychonautwiki-journal/id1582059415"
+                let appStoreLink = "https://github.com/drcarlosaraujocastro-ai/psychonautwiki-journal-ios"
                 QRCodeView(url: appStoreLink)
                 ShareLink("Share app store link", item: URL(string: appStoreLink)!)
                 Link(destination: URL(string: appStoreLink)!) {
@@ -45,7 +45,7 @@ struct ShareScreen: View {
                 }
             }
             Section("Android App") {
-                let playStoreLink = "https://play.google.com/store/apps/details?id=com.isaakhanimann.journal"
+                let playStoreLink = "https://github.com/drcarlosaraujocastro-ai/psychonautwiki-journal-ios"
                 QRCodeView(url: playStoreLink)
                 ShareLink("Share play store link", item: URL(string: playStoreLink)!)
                 Link(destination: URL(string: playStoreLink)!) {
