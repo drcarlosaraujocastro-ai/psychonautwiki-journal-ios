@@ -3,10 +3,11 @@ name: Persist generated app changes
 on:
   push:
     branches:
-      - agent/phase-2-native-app
+      - "agent/**"
     paths:
       - scripts/rebrand_project.sh
       - scripts/port_psylog_compatibility.py
+      - scripts/enable_modern_custom_substances.py
       - .github/workflows/persist-rebrand.yml
   workflow_dispatch:
 
@@ -21,7 +22,7 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
         with:
-          ref: agent/phase-2-native-app
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Apply permanent identity
@@ -30,11 +31,18 @@ jobs:
       - name: Port selected PsyLog compatibility fixes
         run: python3 scripts/port_psylog_compatibility.py
 
+      - name: Enable Journal 14.x custom substances
+        run: python3 scripts/enable_modern_custom_substances.py
+
       - name: Validate generated files
         run: |
           plutil -lint "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
           grep -q "normalizeModernJournalExport" \
             "PsychonautWiki Journal/Settings/Settings-ViewModel.swift"
+          grep -q "ModernCustomSubstanceStore" \
+            "PsychonautWiki Journal/Decoding/SubstanceRepo.swift"
+          grep -q "testModernCustomSubstance14Decoding" \
+            "JournalTests/DecodingTests.swift"
           grep -q "drcarlosaraujocastro-ai/psychonautwiki-journal-ios" \
             "PsychonautWiki Journal/Settings/SettingsScreen.swift"
 
@@ -50,9 +58,13 @@ jobs:
           git add \
             "PsychonautWiki Journal.xcodeproj/project.pbxproj" \
             "PsychonautWiki Journal/PsychonautWiki Journal.entitlements" \
+            "PsychonautWiki Journal/Decoding/Substance.swift" \
+            "PsychonautWiki Journal/Decoding/SubstanceRepo.swift" \
+            "PsychonautWiki Journal/Search/SearchScreen.swift" \
             "PsychonautWiki Journal/Settings/Settings-ViewModel.swift" \
             "PsychonautWiki Journal/Settings/SettingsScreen.swift" \
             "PsychonautWiki Journal/Safer/Screens/TestingServicesScreen.swift" \
-            "PsychonautWiki Journal/Settings/Components/Share/ShareScreen.swift"
-          git commit -m "Persist native identity and PsyLog compatibility"
-          git push origin HEAD:agent/phase-2-native-app
+            "PsychonautWiki Journal/Settings/Components/Share/ShareScreen.swift" \
+            "JournalTests/DecodingTests.swift"
+          git commit -m "Persist modern custom substance support"
+          git push origin "HEAD:${{ github.ref_name }}"
