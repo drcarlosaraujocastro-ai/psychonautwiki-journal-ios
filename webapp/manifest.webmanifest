@@ -1,0 +1,14 @@
+{
+  "name": "PsychonautWiki Journal Web",
+  "short_name": "PW Journal",
+  "description": "Offline-first web reconstruction of the PsychonautWiki Journal workflow.",
+  "start_url": "./index.html#journal",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#111214",
+  "theme_color": "#111214",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
