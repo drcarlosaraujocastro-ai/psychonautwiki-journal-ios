@@ -1,7 +1,7 @@
 'use strict';
 
 window.addEventListener('load',async()=>{
- try{window.ClinicalInventory?.ensure();if(window.ClinicalInventory?.alerts?.().length)toast(`${window.ClinicalInventory.alerts().length} medication stock lot(s) are at or below the low-stock threshold.`)}catch(e){console.warn(e)}
+ try{window.ClinicalInventory?.ensure();window.ClinicalReasoning?.ensure?.();if(window.ClinicalInventory?.alerts?.().length)toast(`${window.ClinicalInventory.alerts().length} medication stock lot(s) are at or below the low-stock threshold.`)}catch(e){console.warn(e)}
 });
 
 if(typeof finishIngestionWizard==='function'){
@@ -18,8 +18,12 @@ if(typeof journalPayload==='function'){
  const __baseJournalPayload=journalPayload;
  journalPayload=function(){
    const p=__baseJournalPayload();
-   window.ClinicalInventory?.ensure();
-   return {...p,clinicalData:{inventoryLots:state.inventoryLots||[],inventoryMovements:state.inventoryMovements||[],clinicalCheckins:state.clinicalCheckins||[],clinicalSettings:state.clinicalSettings||{}}};
+   window.ClinicalInventory?.ensure();window.ClinicalReasoning?.ensure?.();
+   return {...p,clinicalData:{
+     inventoryLots:state.inventoryLots||[],inventoryMovements:state.inventoryMovements||[],clinicalCheckins:state.clinicalCheckins||[],clinicalSettings:state.clinicalSettings||{},
+     clinicalProfile:state.clinicalProfile||{},targetSymptoms:state.targetSymptoms||[],symptomMeasurements:state.symptomMeasurements||[],clinicalTreatments:state.clinicalTreatments||[],clinicalAnalyses:state.clinicalAnalyses||[],
+     clinicalOverrides:state.clinicalOverrides||{},substanceOverrides:state.substanceOverrides||{}
+   }};
  };
 }
 
@@ -28,7 +32,12 @@ if(typeof importJournal==='function'){
  importJournal=async function(file){
    let clinical=null;try{clinical=JSON.parse(await file.text())?.clinicalData||null}catch(e){}
    await __baseImportJournal(file);
-   if(clinical){state.inventoryLots=clinical.inventoryLots||[];state.inventoryMovements=clinical.inventoryMovements||[];state.clinicalCheckins=clinical.clinicalCheckins||[];state.clinicalSettings=clinical.clinicalSettings||{};await saveState();toast('Journal and clinical inventory imported')}
+   if(clinical){
+     state.inventoryLots=clinical.inventoryLots||[];state.inventoryMovements=clinical.inventoryMovements||[];state.clinicalCheckins=clinical.clinicalCheckins||[];state.clinicalSettings=clinical.clinicalSettings||{};
+     state.clinicalProfile=clinical.clinicalProfile||{};state.targetSymptoms=clinical.targetSymptoms||[];state.symptomMeasurements=clinical.symptomMeasurements||[];state.clinicalTreatments=clinical.clinicalTreatments||[];state.clinicalAnalyses=clinical.clinicalAnalyses||[];
+     state.clinicalOverrides=clinical.clinicalOverrides||state.clinicalOverrides||{};state.substanceOverrides=clinical.substanceOverrides||state.substanceOverrides||{};
+     window.ClinicalReasoning?.ensure?.();await saveState();toast('Journal and clinical workspace imported')
+   }
  };
 }
 
