@@ -1,0 +1,21 @@
+const CACHE='pwj-web-v2.1';
+const CORE=['./','./index.html','./app.css','./app-core.js','./app-journal.js','./app-substances.js','./app-experience.js','./app-safer-settings.js','./app-custom-data.js','./app-events.js','./manifest.webmanifest','./icon.svg','./app-icon-196.png','./app-icon-512.png','./apple-touch-icon.png','./data/substances.json'];
+self.addEventListener('install',event=>{
+  event.waitUntil(caches.open(CACHE).then(async cache=>{
+    await Promise.all(CORE.map(async url=>{try{await cache.add(url)}catch(e){console.warn('cache miss',url,e)}}));
+  }).then(()=>self.skipWaiting()));
+});
+self.addEventListener('activate',event=>{
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+});
+self.addEventListener('fetch',event=>{
+  if(event.request.method!=='GET') return;
+  event.respondWith(caches.match(event.request).then(hit=>{
+    const network=fetch(event.request).then(response=>{
+      if(response && response.ok){const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,copy));}
+      return response;
+    });
+    if(event.request.mode==='navigate') return network.catch(()=>caches.match('./index.html'));
+    return hit || network.catch(()=>caches.match('./index.html'));
+  }));
+});
