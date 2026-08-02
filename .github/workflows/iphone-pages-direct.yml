@@ -10,6 +10,9 @@ on:
       - 'webapp/app-core.js'
       - 'webapp/app-clinical-engine.js'
       - 'webapp/app-clinical-ui.js'
+      - 'webapp/app-clinical.js'
+      - 'webapp/app-clinical-nav.js'
+      - 'webapp/app-clinical-hooks.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
@@ -49,6 +52,9 @@ jobs:
           cp webapp/app-core.js _site/app-core.js
           cp webapp/app-clinical-engine.js _site/app-clinical-engine.js
           cp webapp/app-clinical-ui.js _site/app-clinical-ui.js
+          cp webapp/app-clinical.js _site/app-clinical.js
+          cp webapp/app-clinical-nav.js _site/app-clinical-nav.js
+          cp webapp/app-clinical-hooks.js _site/app-clinical-hooks.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
