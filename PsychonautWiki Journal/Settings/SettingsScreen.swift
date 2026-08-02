@@ -16,6 +16,7 @@
 
 import AlertToast
 import SwiftUI
+import UniformTypeIdentifiers
 import AppIntents
 
 struct SettingsScreen: View {
@@ -67,6 +68,11 @@ struct SettingsScreen: View {
             importCustomSubstances: { data in
                 viewModel.importCustomSubstances(data: data)
             },
+            isExportingCustomSubstances: $viewModel.isExportingCustomSubstances,
+            customSubstanceDocument: viewModel.customSubstanceDocument,
+            exportCustomSubstances: {
+                viewModel.exportCustomSubstances()
+            },
             deleteEverything: {
                 viewModel.deleteEverything()
             },
@@ -95,6 +101,9 @@ struct SettingsContent: View {
     let exportData: () -> Void
     let importData: (Data) -> Void
     let importCustomSubstances: (Data) -> Void
+    @Binding var isExportingCustomSubstances: Bool
+    let customSubstanceDocument: ModernCustomSubstanceDocument
+    let exportCustomSubstances: () -> Void
     let deleteEverything: () -> Void
     @Binding var isShowingToast: Bool
     @Binding var isSuccessToast: Bool
@@ -203,23 +212,12 @@ struct SettingsContent: View {
                 } label: {
                     Label("Import Custom Substances", systemImage: "square.and.arrow.down")
                 }
-                HStack {
-                    Text("Imported")
-                    Spacer()
-                    Text("\(ModernCustomSubstanceStore.importedCount)")
-                        .foregroundColor(.secondary)
-                }
-                .id(modernCustomSubstancesRevision)
-            }
-            Section(
-                header: Text("Custom Substances"),
-                footer: Text("Imports Journal 14.x custom-substance files without replacing your experiences or journal history.")
-            ) {
                 Button {
-                    isImportingCustomSubstances = true
+                    exportCustomSubstances()
                 } label: {
-                    Label("Import Custom Substances", systemImage: "square.and.arrow.down")
+                    Label("Export Custom Substances", systemImage: "square.and.arrow.up")
                 }
+                .disabled(ModernCustomSubstanceStore.importedCount == 0)
                 HStack {
                     Text("Imported")
                     Spacer()
@@ -294,6 +292,18 @@ struct SettingsContent: View {
             }
         }
         .fileExporter(
+            isPresented: $isExportingCustomSubstances,
+            document: customSubstanceDocument,
+            contentType: .json,
+            defaultFilename: "Custom Substances \(Date().asDateString)"
+        ) { result in
+            if case .success = result {
+                toastViewModel.showSuccessToast(message: "Custom Substance Export Successful")
+            } else {
+                toastViewModel.showErrorToast(message: "Custom Substance Export Failed")
+            }
+        }
+        .fileExporter(
             isPresented: $isExporting,
             document: journalFile,
             contentType: .json,
@@ -356,6 +366,9 @@ struct SettingsContent: View {
         exportData: {},
         importData: { _ in },
         importCustomSubstances: { _ in },
+        isExportingCustomSubstances: .constant(false),
+        customSubstanceDocument: ModernCustomSubstanceDocument(),
+        exportCustomSubstances: {},
         deleteEverything: {},
         isShowingToast: .constant(false),
         isSuccessToast: .constant(false),
@@ -363,4 +376,23 @@ struct SettingsContent: View {
         lockTimeOption: .constant(.after5Minutes)
     )
     .accentColor(Color.blue)
+}
+
+
+struct ModernCustomSubstanceDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data = Data()) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
 }

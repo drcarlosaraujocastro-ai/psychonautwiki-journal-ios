@@ -188,6 +188,17 @@ enum ModernCustomSubstanceStore {
         }
     }
 
+    static func exportData() throws -> Data {
+        var file = loadFile() ?? ModernCustomSubstanceFile(
+            customUnits: [],
+            exportSource: "iOS Custom Substances 14.1"
+        )
+        file.exportSource = "iOS Custom Substances 14.1"
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(file)
+    }
+
     @discardableResult
     static func upsertCustomSubstance(
         id: Int?,
