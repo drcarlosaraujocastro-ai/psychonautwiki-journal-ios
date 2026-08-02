@@ -10,6 +10,7 @@ on:
       - scripts/enable_modern_custom_substances.py
       - scripts/enable_modern_custom_editor.py
       - scripts/enable_modern_custom_export.py
+      - scripts/enable_modern_custom_delete.py
       - .github/workflows/persist-rebrand.yml
   workflow_dispatch:
 
@@ -42,6 +43,9 @@ jobs:
       - name: Enable custom-substance export
         run: python3 scripts/enable_modern_custom_export.py
 
+      - name: Enable custom-substance deletion
+        run: python3 scripts/enable_modern_custom_delete.py
+
       - name: Validate generated files
         run: |
           plutil -lint "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
@@ -53,9 +57,11 @@ jobs:
             "PsychonautWiki Journal/Decoding/SubstanceRepo.swift"
           grep -q "static func exportData() throws -> Data" \
             "PsychonautWiki Journal/Decoding/SubstanceRepo.swift"
+          grep -q "static func deleteUnit" \
+            "PsychonautWiki Journal/Decoding/SubstanceRepo.swift"
           grep -q "includeDoseAndDuration" \
             "PsychonautWiki Journal/Search/Custom Substance/AddCustomSubstance-ViewModel.swift"
-          grep -q "DurationRangeEditorRow" \
+          grep -q "Delete Custom Substance" \
             "PsychonautWiki Journal/Search/Custom Substance/AddCustomSubstanceView.swift"
           grep -q "isShowingEditCustomSubstanceSheet" \
             "PsychonautWiki Journal/Search/Substance/SubstanceScreen.swift"
@@ -89,5 +95,5 @@ jobs:
             "PsychonautWiki Journal/Safer/Screens/TestingServicesScreen.swift" \
             "PsychonautWiki Journal/Settings/Components/Share/ShareScreen.swift" \
             "JournalTests/DecodingTests.swift"
-          git commit -m "Persist modern custom substance export"
+          git commit -m "Persist modern custom substance deletion"
           git push origin "HEAD:${{ github.ref_name }}"
