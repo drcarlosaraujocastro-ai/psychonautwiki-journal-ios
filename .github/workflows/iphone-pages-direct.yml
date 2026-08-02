@@ -9,6 +9,7 @@ on:
       - 'iphone-webapp/**'
       - 'webapp/app-core.js'
       - 'webapp/app-clinical-engine.js'
+      - 'webapp/app-clinical-ui.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
@@ -47,6 +48,7 @@ jobs:
           cp iphone-webapp/sw.js _site/sw.js
           cp webapp/app-core.js _site/app-core.js
           cp webapp/app-clinical-engine.js _site/app-clinical-engine.js
+          cp webapp/app-clinical-ui.js _site/app-clinical-ui.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
