@@ -1,0 +1,164 @@
+name: SideStore Release
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sidestore-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-sideload-package:
+    runs-on: macos-15
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply sideload-safe identity
+        run: bash scripts/rebrand_project.sh
+
+      - name: Show Xcode toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          xcodebuild -list -project "PsychonautWiki Journal.xcodeproj"
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild \
+            -resolvePackageDependencies \
+            -project "PsychonautWiki Journal.xcodeproj" \
+            -scheme "PsychonautWiki Journal"
+
+      - name: Build unsigned app for iPhone
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "PsychonautWiki Journal.xcodeproj" \
+            -scheme "PsychonautWiki Journal" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath DeviceDerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build | tee sidestore-device-build.log
+
+      - name: Package SideStore-ready IPA
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH=$(find DeviceDerivedData/Build/Products/Release-iphoneos \
+            -maxdepth 1 -name "*.app" -type d | head -n 1)
+          test -n "$APP_PATH"
+
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Info.plist")
+          BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Info.plist")
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Info.plist")
+
+          rm -rf Payload
+          mkdir Payload
+          ditto "$APP_PATH" "Payload/$(basename "$APP_PATH")"
+          /usr/bin/zip -qry PsychonautJournal.ipa Payload
+          shasum -a 256 PsychonautJournal.ipa > PsychonautJournal.ipa.sha256
+
+          DOWNLOAD_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/sideload-latest/PsychonautJournal.ipa"
+          ENCODED_URL=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$DOWNLOAD_URL")
+          SIDESTORE_URL="sidestore://install?url=${ENCODED_URL}"
+
+          {
+            echo "version=$VERSION"
+            echo "build=$BUILD"
+            echo "bundle_id=$BUNDLE_ID"
+            echo "download_url=$DOWNLOAD_URL"
+            echo "sidestore_url=$SIDESTORE_URL"
+          } >> "$GITHUB_OUTPUT"
+
+          cat > SideStore-Install.txt <<EOF
+          Psychonaut Journal
+          Version: $VERSION ($BUILD)
+          Bundle ID: $BUNDLE_ID
+
+          Install directly with SideStore:
+          $SIDESTORE_URL
+
+          Direct IPA URL (SideStore downloads and signs this automatically):
+          $DOWNLOAD_URL
+          EOF
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: psychonaut-journal-sidestore-${{ github.run_number }}
+          path: |
+            PsychonautJournal.ipa
+            PsychonautJournal.ipa.sha256
+            SideStore-Install.txt
+            sidestore-device-build.log
+          if-no-files-found: error
+
+      - name: Prepare release notes
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          cat > sidestore-release-notes.md <<'EOF'
+          ## Psychonaut Journal — SideStore build
+
+          This release asset is intentionally unsigned. SideStore signs it locally with the Apple account configured on the device.
+
+          **Normal installation:** add the stable download URL to SideStore, or use the `sidestore://install` link documented in `docs/SIDESTORE_WINDOWS.md`.
+
+          The asset name and release tag remain stable so future builds can replace the IPA without changing the installation URL.
+          EOF
+
+      - name: Publish stable SideStore release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="sideload-latest"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              PsychonautJournal.ipa \
+              PsychonautJournal.ipa.sha256 \
+              SideStore-Install.txt \
+              --clobber
+            gh release edit "$TAG" \
+              --title "Psychonaut Journal — SideStore latest" \
+              --notes-file sidestore-release-notes.md \
+              --latest
+          else
+            gh release create "$TAG" \
+              PsychonautJournal.ipa \
+              PsychonautJournal.ipa.sha256 \
+              SideStore-Install.txt \
+              --target "$GITHUB_SHA" \
+              --title "Psychonaut Journal — SideStore latest" \
+              --notes-file sidestore-release-notes.md \
+              --latest
+          fi
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## SideStore package"
+            echo
+            echo "- Version: ${{ steps.package.outputs.version }} (${{ steps.package.outputs.build }})"
+            echo "- Bundle ID: ${{ steps.package.outputs.bundle_id }}"
+            echo "- Stable IPA: ${{ steps.package.outputs.download_url }}"
+            echo "- SideStore URL: \`${{ steps.package.outputs.sidestore_url }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
