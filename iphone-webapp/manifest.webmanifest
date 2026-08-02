@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "PsychonautWiki Journal",
+  "short_name": "Journal",
+  "description": "Offline-first iPhone web reconstruction of PsychonautWiki Journal.",
+  "start_url": "./#journal",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone"],
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {"src":"./app-icon-196.png","sizes":"196x196","type":"image/png","purpose":"any"},
+    {"src":"./app-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"},
+    {"src":"./icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
