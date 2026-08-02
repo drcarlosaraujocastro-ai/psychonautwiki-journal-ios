@@ -167,6 +167,17 @@ extension SettingsScreen {
                 showErrorToast(message: "Import Failed")
             }
         }
+        func importCustomSubstances(data: Data) {
+            do {
+                let count = try ModernCustomSubstanceStore.importData(data)
+                let noun = count == 1 ? "substance" : "substances"
+                showSuccessToast(message: "Imported \(count) custom \(noun)")
+            } catch {
+                print("Custom substance import failed: \(error.localizedDescription)")
+                showErrorToast(message: "Custom Substance Import Failed")
+            }
+        }
+
         // Modern Journal exports changed the custom-unit model after version 11.11.
         // Adapted from PsyLog (GPL-3.0). Only recognized Journal backups are
         // transformed; unrelated or unknown JSON is returned unchanged.
@@ -285,6 +296,7 @@ extension SettingsScreen {
         func deleteEverything() {
             do {
                 try PersistenceController.shared.deleteEverything()
+                try ModernCustomSubstanceStore.deleteAll()
                 showSuccessToast(message: "Delete Successful")
             } catch {
                 showErrorToast(message: "Delete Failed")

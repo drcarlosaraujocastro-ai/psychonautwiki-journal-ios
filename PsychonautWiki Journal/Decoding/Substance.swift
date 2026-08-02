@@ -99,6 +99,63 @@ struct Substance: Decodable, Identifiable, Hashable {
         saferUse = (try? container.decodeIfPresent([String].self, forKey: .saferUse)) ?? []
     }
 
+    init(modernCustomUnit: ModernCustomUnit) {
+        name = modernCustomUnit.name
+
+        var searchURL = URLComponents(string: "https://psychonautwiki.org/w/index.php")
+        searchURL?.queryItems = [URLQueryItem(name: "search", value: modernCustomUnit.name)]
+        url = searchURL?.url ?? URL(string: "https://psychonautwiki.org/")!
+
+        commonNames = []
+        isApproved = false
+        tolerance = nil
+        crossTolerances = []
+        addictionPotential = nil
+        toxicities = []
+        categories = ["custom"]
+        interactions = nil
+
+        roas = (modernCustomUnit.roaInfos ?? []).compactMap { info in
+            guard let route = info.administrationRouteValue else { return nil }
+
+            let dose = info.doseInfo.map { info in
+                RoaDose(
+                    units: modernCustomUnit.unit,
+                    lightMin: info.lightMin,
+                    commonMin: info.commonMin,
+                    strongMin: info.strongMin,
+                    heavyMin: info.heavyMin
+                )
+            }
+
+            let duration = info.durationInfo.map { info in
+                RoaDuration(
+                    onset: info.onset,
+                    comeup: info.comeup,
+                    peak: info.peak,
+                    offset: info.offset,
+                    total: info.total,
+                    afterglow: info.afterglow
+                )
+            }
+
+            return Roa(
+                name: route,
+                dose: dose,
+                duration: duration,
+                bioavailability: nil
+            )
+        }
+
+        let trimmedNote = modernCustomUnit.note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        summary = (trimmedNote?.isEmpty == false) ? trimmedNote : nil
+        effectsSummary = nil
+        dosageRemark = "Custom substance"
+        generalRisks = nil
+        longtermRisks = nil
+        saferUse = []
+    }
+
     var administrationRoutesUnwrapped: [AdministrationRoute] {
         roas.map { roa in
             roa.name

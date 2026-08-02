@@ -64,6 +64,9 @@ struct SettingsScreen: View {
             importData: { data in
                 viewModel.importData(data: data)
             },
+            importCustomSubstances: { data in
+                viewModel.importCustomSubstances(data: data)
+            },
             deleteEverything: {
                 viewModel.deleteEverything()
             },
@@ -91,6 +94,7 @@ struct SettingsContent: View {
     @EnvironmentObject private var toastViewModel: ToastViewModel
     let exportData: () -> Void
     let importData: (Data) -> Void
+    let importCustomSubstances: (Data) -> Void
     let deleteEverything: () -> Void
     @Binding var isShowingToast: Bool
     @Binding var isSuccessToast: Bool
@@ -99,6 +103,8 @@ struct SettingsContent: View {
 
     @State private var isShowingDeleteConfirmation = false
     @State private var isShowingImportAlert = false
+    @State private var isImportingCustomSubstances = false
+    @AppStorage(ModernCustomSubstanceStore.revisionKey) private var modernCustomSubstancesRevision = 0
 
     var body: some View {
         List {
@@ -188,6 +194,23 @@ struct SettingsContent: View {
                     }
                 )
             }
+            Section(
+                header: Text("Custom Substances"),
+                footer: Text("Imports Journal 14.x custom-substance files without replacing your experiences or journal history.")
+            ) {
+                Button {
+                    isImportingCustomSubstances = true
+                } label: {
+                    Label("Import Custom Substances", systemImage: "square.and.arrow.down")
+                }
+                HStack {
+                    Text("Imported")
+                    Spacer()
+                    Text("\(ModernCustomSubstanceStore.importedCount)")
+                        .foregroundColor(.secondary)
+                }
+                .id(modernCustomSubstancesRevision)
+            }
             Section("Communication") {
                 if isEyeOpen {
                     NavigationLink(value: GlobalNavigationDestination.shareApp) {
@@ -232,6 +255,25 @@ struct SettingsContent: View {
             } catch {
                 toastViewModel.showErrorToast(message: "Import Failed")
                 print("Error getting data: \(error.localizedDescription)")
+            }
+        }
+        .fileImporter(
+            isPresented: $isImportingCustomSubstances,
+            allowedContentTypes: [.json]
+        ) { result in
+            do {
+                let selectedFile = try result.get()
+                let didStartAccess = selectedFile.startAccessingSecurityScopedResource()
+                defer {
+                    if didStartAccess {
+                        selectedFile.stopAccessingSecurityScopedResource()
+                    }
+                }
+                let data = try Data(contentsOf: selectedFile)
+                importCustomSubstances(data)
+            } catch {
+                toastViewModel.showErrorToast(message: "Custom Substance Import Failed")
+                print("Error importing custom substances: \(error.localizedDescription)")
             }
         }
         .fileExporter(
@@ -296,6 +338,7 @@ struct SettingsContent: View {
         journalFile: JournalFile(experiences: [], customSubstances: [], customUnits: []),
         exportData: {},
         importData: { _ in },
+        importCustomSubstances: { _ in },
         deleteEverything: {},
         isShowingToast: .constant(false),
         isSuccessToast: .constant(false),
