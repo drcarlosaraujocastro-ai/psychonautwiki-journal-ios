@@ -43,38 +43,37 @@ if 'isExportingCustomSubstances' not in text:
     write(path, text)
 
 
-# Settings UI: add a second exporter in the existing Custom Substances section.
+# Settings UI: remove duplicate legacy sections created by older generator runs,
+# then add a second exporter in the surviving Custom Substances section.
 path = 'PsychonautWiki Journal/Settings/SettingsScreen.swift'
 text = read(path)
+legacy_custom_section = '''            Section(\n                header: Text("Custom Substances"),\n                footer: Text("Imports Journal 14.x custom-substance files without replacing your experiences or journal history.")\n            ) {\n                Button {\n                    isImportingCustomSubstances = true\n                } label: {\n                    Label("Import Custom Substances", systemImage: "square.and.arrow.down")\n                }\n                HStack {\n                    Text("Imported")\n                    Spacer()\n                    Text("\\(ModernCustomSubstanceStore.importedCount)")\n                        .foregroundColor(.secondary)\n                }\n                .id(modernCustomSubstancesRevision)\n            }\n'''
+while text.count('header: Text("Custom Substances")') > 1 and legacy_custom_section in text:
+    text = text.replace(legacy_custom_section, '', 1)
+
 if 'ModernCustomSubstanceDocument' not in text:
     text = text.replace('import SwiftUI\n', 'import SwiftUI\nimport UniformTypeIdentifiers\n', 1)
 
-    # Main SettingsScreen -> SettingsContent arguments.
     anchor = '''            importCustomSubstances: { data in\n                viewModel.importCustomSubstances(data: data)\n            },\n            deleteEverything: {'''
     insertion = '''            importCustomSubstances: { data in\n                viewModel.importCustomSubstances(data: data)\n            },\n            isExportingCustomSubstances: $viewModel.isExportingCustomSubstances,\n            customSubstanceDocument: viewModel.customSubstanceDocument,\n            exportCustomSubstances: {\n                viewModel.exportCustomSubstances()\n            },\n            deleteEverything: {'''
     text = replace_once(text, anchor, insertion, 'Settings export arguments')
 
-    # SettingsContent properties.
     anchor = '''    let importData: (Data) -> Void\n    let importCustomSubstances: (Data) -> Void\n    let deleteEverything: () -> Void\n'''
     insertion = '''    let importData: (Data) -> Void\n    let importCustomSubstances: (Data) -> Void\n    @Binding var isExportingCustomSubstances: Bool\n    let customSubstanceDocument: ModernCustomSubstanceDocument\n    let exportCustomSubstances: () -> Void\n    let deleteEverything: () -> Void\n'''
     text = replace_once(text, anchor, insertion, 'SettingsContent export props')
 
-    # Button in existing section.
     anchor = '''                Button {\n                    isImportingCustomSubstances = true\n                } label: {\n                    Label("Import Custom Substances", systemImage: "square.and.arrow.down")\n                }\n                HStack {'''
     insertion = '''                Button {\n                    isImportingCustomSubstances = true\n                } label: {\n                    Label("Import Custom Substances", systemImage: "square.and.arrow.down")\n                }\n                Button {\n                    exportCustomSubstances()\n                } label: {\n                    Label("Export Custom Substances", systemImage: "square.and.arrow.up")\n                }\n                .disabled(ModernCustomSubstanceStore.importedCount == 0)\n                HStack {'''
     text = replace_once(text, anchor, insertion, 'Settings export button')
 
-    # Second fileExporter, immediately before the Journal fileExporter.
     anchor = '''        .fileExporter(\n            isPresented: $isExporting,\n            document: journalFile,\n'''
     insertion = '''        .fileExporter(\n            isPresented: $isExportingCustomSubstances,\n            document: customSubstanceDocument,\n            contentType: .json,\n            defaultFilename: "Custom Substances \\(Date().asDateString)"\n        ) { result in\n            if case .success = result {\n                toastViewModel.showSuccessToast(message: "Custom Substance Export Successful")\n            } else {\n                toastViewModel.showErrorToast(message: "Custom Substance Export Failed")\n            }\n        }\n        .fileExporter(\n            isPresented: $isExporting,\n            document: journalFile,\n'''
     text = replace_once(text, anchor, insertion, 'Settings custom fileExporter')
 
-    # Preview arguments.
     anchor = '''        importData: { _ in },\n        importCustomSubstances: { _ in },\n        deleteEverything: {},\n'''
     insertion = '''        importData: { _ in },\n        importCustomSubstances: { _ in },\n        isExportingCustomSubstances: .constant(false),\n        customSubstanceDocument: ModernCustomSubstanceDocument(),\n        exportCustomSubstances: {},\n        deleteEverything: {},\n'''
     text = replace_once(text, anchor, insertion, 'Settings preview export args')
 
-    # FileDocument in same source file, no Xcode project changes required.
     text += r'''
 
 struct ModernCustomSubstanceDocument: FileDocument {
@@ -95,6 +94,6 @@ struct ModernCustomSubstanceDocument: FileDocument {
     }
 }
 '''
-    write(path, text)
 
+write(path, text)
 print('Modern custom substance export patch applied.')
