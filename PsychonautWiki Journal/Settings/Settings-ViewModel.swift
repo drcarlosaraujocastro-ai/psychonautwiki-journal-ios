@@ -22,6 +22,8 @@ extension SettingsScreen {
     class ViewModel: ObservableObject {
         @Published var isExporting = false
         @Published var journalFile = JournalFile(experiences: [], customSubstances: [], customUnits: [])
+        @Published var isExportingCustomSubstances = false
+        @Published var customSubstanceDocument = ModernCustomSubstanceDocument()
         @Published var isShowingToast = false
         @Published var isShowingSuccessToast = false
         @Published var toastMessage = ""
@@ -175,6 +177,18 @@ extension SettingsScreen {
             } catch {
                 print("Custom substance import failed: \(error.localizedDescription)")
                 showErrorToast(message: "Custom Substance Import Failed")
+            }
+        }
+
+        func exportCustomSubstances() {
+            do {
+                customSubstanceDocument = ModernCustomSubstanceDocument(
+                    data: try ModernCustomSubstanceStore.exportData()
+                )
+                isExportingCustomSubstances = true
+            } catch {
+                print("Custom substance export failed: \(error.localizedDescription)")
+                showErrorToast(message: "Custom Substance Export Failed")
             }
         }
 
