@@ -1,0 +1,60 @@
+name: Deploy iPhone Journal PWA
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Journal Webapp to Pages"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: iphone-journal-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout deployed revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Assemble iPhone PWA
+        shell: bash
+        run: |
+          mkdir -p _site/data
+          cp iphone-webapp/index.html _site/index.html
+          cp iphone-webapp/app.css _site/app.css
+          cp iphone-webapp/manifest.webmanifest _site/manifest.webmanifest
+          cp iphone-webapp/sw.js _site/sw.js
+          cp webapp/app-core.js _site/app-core.js
+          cp webapp/app-journal.js _site/app-journal.js
+          cp webapp/app-substances.js _site/app-substances.js
+          cp webapp/app-experience.js _site/app-experience.js
+          cp webapp/app-safer-settings.js _site/app-safer-settings.js
+          cp webapp/app-custom-data.js _site/app-custom-data.js
+          cp webapp/app-events.js _site/app-events.js
+          cp webapp/icon.svg _site/icon.svg
+          cp 'PsychonautWiki Journal/substances.json' _site/data/substances.json
+          cp 'PsychonautWiki Journal/Assets.xcassets/AppIcon.appiconset/196.png' _site/app-icon-196.png
+          cp 'PsychonautWiki Journal/Assets.xcassets/AppIcon.appiconset/512.png' _site/app-icon-512.png
+          cp 'PsychonautWiki Journal/Assets.xcassets/AppIcon.appiconset/196.png' _site/apple-touch-icon.png
+          touch _site/.nojekyll
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
