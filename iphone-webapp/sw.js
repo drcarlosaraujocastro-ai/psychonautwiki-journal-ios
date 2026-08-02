@@ -1,5 +1,5 @@
-const CACHE='pwj-web-v2.1';
-const CORE=['./','./index.html','./app.css','./app-core.js','./app-journal.js','./app-substances.js','./app-experience.js','./app-safer-settings.js','./app-custom-data.js','./app-events.js','./manifest.webmanifest','./icon.svg','./app-icon-196.png','./app-icon-512.png','./apple-touch-icon.png','./data/substances.json'];
+const CACHE='pwj-web-v2.2-clinical';
+const CORE=['./','./index.html','./app.css','./app-core.js','./app-clinical-engine.js','./app-clinical-ui.js','./app-clinical.js','./app-clinical-nav.js','./app-clinical-hooks.js','./app-journal.js','./app-substances.js','./app-experience.js','./app-safer-settings.js','./app-custom-data.js','./app-events.js','./manifest.webmanifest','./icon.svg','./app-icon-196.png','./app-icon-512.png','./apple-touch-icon.png','./data/substances.json'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(async cache=>{
     await Promise.all(CORE.map(async url=>{try{await cache.add(url)}catch(e){console.warn('cache miss',url,e)}}));
