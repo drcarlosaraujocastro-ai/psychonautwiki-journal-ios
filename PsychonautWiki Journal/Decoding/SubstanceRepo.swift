@@ -311,6 +311,20 @@ enum ModernCustomSubstanceStore {
             .map(Substance.init(modernCustomUnit:))
     }
 
+    @discardableResult
+    static func deleteUnit(id: Int?, name: String) throws -> Bool {
+        guard var file = loadFile() else { return false }
+        let before = file.customUnits.count
+        file.customUnits.removeAll { unit in
+            if let id, unit.id == id { return true }
+            return unit.name.caseInsensitiveCompare(name) == .orderedSame
+        }
+        guard file.customUnits.count != before else { return false }
+        try save(file)
+        bumpRevision()
+        return true
+    }
+
     static func deleteAll() throws {
         let url = storageURL
         if FileManager.default.fileExists(atPath: url.path) {
