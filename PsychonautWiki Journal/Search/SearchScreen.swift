@@ -34,6 +34,7 @@ struct SearchScreen: View {
     ) private var ingestions: FetchedResults<Ingestion>
 
     @AppStorage("isSearchSubstanceSiriTipVisible") private var isSiriTipVisible = true
+    @AppStorage(ModernCustomSubstanceStore.revisionKey) private var modernCustomSubstancesRevision = 0
 
     private static let custom = "custom"
 
@@ -59,6 +60,7 @@ struct SearchScreen: View {
     }
 
     private var substancesFilteredAndSorted: [Substance] {
+        _ = modernCustomSubstancesRevision
         let substancesFilteredWithCategoriesOnly = SubstanceRepo.shared.substances.filter { substance in
             selectedCategories.allSatisfy { selected in
                 substance.categories.contains(selected)
