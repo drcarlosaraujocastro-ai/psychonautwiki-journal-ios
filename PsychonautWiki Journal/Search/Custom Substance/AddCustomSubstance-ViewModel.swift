@@ -85,6 +85,21 @@ extension AddCustomSubstanceView {
             loadSelectedRoute()
         }
 
+        func deleteModern(onComplete: (() -> Void)) {
+            guard let loadedModernUnit else { return }
+            do {
+                _ = try ModernCustomSubstanceStore.deleteUnit(
+                    id: loadedModernUnit.id,
+                    name: originalModernName ?? loadedModernUnit.name
+                )
+                self.loadedModernUnit = nil
+                originalModernName = nil
+                onComplete()
+            } catch {
+                print("Failed to delete modern custom substance: \(error.localizedDescription)")
+            }
+        }
+
         func saveCustom(onComplete: (() -> Void)) {
             assert(isEverythingNeededDefined, "Tried to save custom substance without defining the necessary fields")
 

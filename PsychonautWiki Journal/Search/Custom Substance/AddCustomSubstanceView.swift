@@ -20,19 +20,23 @@ struct AddCustomSubstanceView: View {
 
     let searchText: String
     let editingModernName: String?
+    let onDeleted: (() -> Void)?
     let onAdded: (CustomSubstanceChooseRouteScreenArguments) -> Void
 
     @StateObject private var viewModel = ViewModel()
+    @State private var isShowingDeleteConfirmation = false
     @Environment(\.dismiss) private var dismiss
     @AppStorage(PersistenceController.isEyeOpenKey2) var isEyeOpen: Bool = false
 
     init(
         searchText: String,
         editingModernName: String? = nil,
+        onDeleted: (() -> Void)? = nil,
         onAdded: @escaping (CustomSubstanceChooseRouteScreenArguments) -> Void
     ) {
         self.searchText = searchText
         self.editingModernName = editingModernName
+        self.onDeleted = onDeleted
         self.onAdded = onAdded
     }
 
@@ -114,6 +118,13 @@ struct AddCustomSubstanceView: View {
                         )
                     }
                 }
+                if editingModernName != nil {
+                    Section {
+                        Button("Delete Custom Substance", role: .destructive) {
+                            isShowingDeleteConfirmation = true
+                        }
+                    }
+                }
             }
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: viewModel.name) { newValue in
@@ -133,6 +144,21 @@ struct AddCustomSubstanceView: View {
                 }
             }
             .navigationTitle(editingModernName == nil ? "Create Custom" : "Edit Custom")
+            .confirmationDialog(
+                "Delete this custom substance?",
+                isPresented: $isShowingDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Delete Custom Substance", role: .destructive) {
+                    viewModel.deleteModern {
+                        onDeleted?()
+                        dismiss()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This removes its custom dose and duration definition. Existing journal entries are not deleted.")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {

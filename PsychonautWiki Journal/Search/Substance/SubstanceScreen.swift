@@ -19,6 +19,7 @@ import SwiftUI
 struct SubstanceScreen: View {
     let substance: Substance
 
+    @Environment(\.dismiss) private var dismiss
     @State private var isShowingAddIngestionSheet = false
     @State private var isShowingEditCustomSubstanceSheet = false
     @State private var currentCustomName: String?
@@ -131,7 +132,10 @@ struct SubstanceScreen: View {
         .sheet(isPresented: $isShowingEditCustomSubstanceSheet) {
             AddCustomSubstanceView(
                 searchText: currentSubstance.name,
-                editingModernName: currentSubstance.name
+                editingModernName: currentSubstance.name,
+                onDeleted: {
+                    dismiss()
+                }
             ) { arguments in
                 currentCustomName = arguments.substanceName
             }
