@@ -182,6 +182,92 @@ enum ModernCustomSubstanceStore {
         loadFile()?.customUnits.filter { !($0.isArchived ?? false) }.count ?? 0
     }
 
+    static func unit(named name: String) -> ModernCustomUnit? {
+        loadFile()?.customUnits.first {
+            $0.name.caseInsensitiveCompare(name) == .orderedSame
+        }
+    }
+
+    @discardableResult
+    static func upsertCustomSubstance(
+        id: Int?,
+        originalName: String?,
+        name: String,
+        unit: String,
+        note: String,
+        administrationRoute: AdministrationRoute,
+        doseInfo: ModernCustomDoseInfo?,
+        durationInfo: ModernCustomDurationInfo?
+    ) throws -> ModernCustomUnit {
+        let now = Date().timeIntervalSince1970 * 1000
+        var file = loadFile() ?? ModernCustomSubstanceFile(
+            customUnits: [],
+            exportSource: "Psychonaut Journal Custom Substances 14.1"
+        )
+
+        let existingIndex = file.customUnits.firstIndex { existing in
+            if let id, existing.id == id { return true }
+            if let originalName, existing.name.caseInsensitiveCompare(originalName) == .orderedSame {
+                return true
+            }
+            return existing.name.caseInsensitiveCompare(name) == .orderedSame
+        }
+
+        var customUnit: ModernCustomUnit
+        if let existingIndex {
+            customUnit = file.customUnits[existingIndex]
+        } else {
+            customUnit = ModernCustomUnit(
+                creationDate: now,
+                color: "BLUE",
+                isArchived: false,
+                note: nil,
+                name: name,
+                unit: unit,
+                unitPlural: unit,
+                id: Int(now),
+                roaInfos: [],
+                doseComponents: []
+            )
+        }
+
+        customUnit.name = name
+        customUnit.unit = unit
+        customUnit.unitPlural = unit
+        customUnit.note = note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : note
+        customUnit.isArchived = false
+
+        var roaInfos = customUnit.roaInfos ?? []
+        let routeIndex = roaInfos.firstIndex {
+            $0.administrationRouteValue == administrationRoute
+        }
+        let existingRoute = routeIndex.map { roaInfos[$0] }
+        let routeInfo = ModernCustomRoaInfo(
+            creationDate: existingRoute?.creationDate ?? now,
+            administrationRoute: administrationRoute.rawValue.uppercased(),
+            id: existingRoute?.id ?? Int(now) & 0x7fffffff,
+            doseInfo: doseInfo,
+            durationInfo: durationInfo
+        )
+
+        if let routeIndex {
+            roaInfos[routeIndex] = routeInfo
+        } else {
+            roaInfos.append(routeInfo)
+        }
+        customUnit.roaInfos = roaInfos
+
+        if let existingIndex {
+            file.customUnits[existingIndex] = customUnit
+        } else {
+            file.customUnits.append(customUnit)
+        }
+
+        try save(file)
+        bumpRevision()
+        return customUnit
+    }
+
     @discardableResult
     static func importData(_ data: Data) throws -> Int {
         let incoming = try decodeAndValidate(data)

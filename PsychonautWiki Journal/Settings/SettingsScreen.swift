@@ -211,6 +211,23 @@ struct SettingsContent: View {
                 }
                 .id(modernCustomSubstancesRevision)
             }
+            Section(
+                header: Text("Custom Substances"),
+                footer: Text("Imports Journal 14.x custom-substance files without replacing your experiences or journal history.")
+            ) {
+                Button {
+                    isImportingCustomSubstances = true
+                } label: {
+                    Label("Import Custom Substances", systemImage: "square.and.arrow.down")
+                }
+                HStack {
+                    Text("Imported")
+                    Spacer()
+                    Text("\(ModernCustomSubstanceStore.importedCount)")
+                        .foregroundColor(.secondary)
+                }
+                .id(modernCustomSubstancesRevision)
+            }
             Section("Communication") {
                 if isEyeOpen {
                     NavigationLink(value: GlobalNavigationDestination.shareApp) {
