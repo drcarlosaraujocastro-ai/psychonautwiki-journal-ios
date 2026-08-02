@@ -8,6 +8,7 @@ on:
       - scripts/rebrand_project.sh
       - scripts/port_psylog_compatibility.py
       - scripts/enable_modern_custom_substances.py
+      - scripts/enable_modern_custom_editor.py
       - .github/workflows/persist-rebrand.yml
   workflow_dispatch:
 
@@ -34,6 +35,9 @@ jobs:
       - name: Enable Journal 14.x custom substances
         run: python3 scripts/enable_modern_custom_substances.py
 
+      - name: Enable native custom-substance editor
+        run: python3 scripts/enable_modern_custom_editor.py
+
       - name: Validate generated files
         run: |
           plutil -lint "PsychonautWiki Journal/PsychonautWiki Journal.entitlements"
@@ -41,6 +45,14 @@ jobs:
             "PsychonautWiki Journal/Settings/Settings-ViewModel.swift"
           grep -q "ModernCustomSubstanceStore" \
             "PsychonautWiki Journal/Decoding/SubstanceRepo.swift"
+          grep -q "upsertCustomSubstance" \
+            "PsychonautWiki Journal/Decoding/SubstanceRepo.swift"
+          grep -q "includeDoseAndDuration" \
+            "PsychonautWiki Journal/Search/Custom Substance/AddCustomSubstance-ViewModel.swift"
+          grep -q "DurationRangeEditorRow" \
+            "PsychonautWiki Journal/Search/Custom Substance/AddCustomSubstanceView.swift"
+          grep -q "isShowingEditCustomSubstanceSheet" \
+            "PsychonautWiki Journal/Search/Substance/SubstanceScreen.swift"
           grep -q "testModernCustomSubstance14Decoding" \
             "JournalTests/DecodingTests.swift"
           grep -q "drcarlosaraujocastro-ai/psychonautwiki-journal-ios" \
@@ -61,10 +73,13 @@ jobs:
             "PsychonautWiki Journal/Decoding/Substance.swift" \
             "PsychonautWiki Journal/Decoding/SubstanceRepo.swift" \
             "PsychonautWiki Journal/Search/SearchScreen.swift" \
+            "PsychonautWiki Journal/Search/Custom Substance/AddCustomSubstance-ViewModel.swift" \
+            "PsychonautWiki Journal/Search/Custom Substance/AddCustomSubstanceView.swift" \
+            "PsychonautWiki Journal/Search/Substance/SubstanceScreen.swift" \
             "PsychonautWiki Journal/Settings/Settings-ViewModel.swift" \
             "PsychonautWiki Journal/Settings/SettingsScreen.swift" \
             "PsychonautWiki Journal/Safer/Screens/TestingServicesScreen.swift" \
             "PsychonautWiki Journal/Settings/Components/Share/ShareScreen.swift" \
             "JournalTests/DecodingTests.swift"
-          git commit -m "Persist modern custom substance support"
+          git commit -m "Persist modern custom substance editor"
           git push origin "HEAD:${{ github.ref_name }}"
