@@ -35,89 +35,86 @@ struct SubstanceScreen: View {
     }
 
     var body: some View {
-        let displayedSubstance = displayedSubstance
+        let currentSubstance = self.displayedSubstance
         List {
-            if !displayedSubstance.isApproved {
+            if !currentSubstance.isApproved {
                 Section {
                     Text("Info Not PW Approved")
                 }
             }
             Group {
                 Group { // group is here because we cannot have more than 10 subviews
-                    if let summary = displayedSubstance.summary {
+                    if let summary = currentSubstance.summary {
                         Section("Summary") {
                             VStack {
                                 Text(summary)
-                                if !displayedSubstance.categories.isEmpty {
-                                    CategorySection(substance: displayedSubstance)
+                                if !currentSubstance.categories.isEmpty {
+                                    CategorySection(substance: currentSubstance)
                                 }
                             }
                         }
-                    } else {
-                        if !displayedSubstance.categories.isEmpty {
-                            Section("Categories") {
-                                CategorySection(substance: displayedSubstance)
-                            }
+                    } else if !currentSubstance.categories.isEmpty {
+                        Section("Categories") {
+                            CategorySection(substance: currentSubstance)
                         }
                     }
-                    if let effects = displayedSubstance.effectsSummary {
+                    if let effects = currentSubstance.effectsSummary {
                         Section("Effects") {
                             Text(effects)
                         }
                     }
                 }
                 Group {
-                    if displayedSubstance.dosageRemark != nil || !displayedSubstance.doseInfos.isEmpty {
-                        DosesSection(substance: displayedSubstance)
+                    if currentSubstance.dosageRemark != nil || !currentSubstance.doseInfos.isEmpty {
+                        DosesSection(substance: currentSubstance)
                     }
-                    let durationInfos = displayedSubstance.durationInfos
+                    let durationInfos = currentSubstance.durationInfos
                     if !durationInfos.isEmpty {
-                        DurationSection(substance: displayedSubstance)
+                        DurationSection(substance: currentSubstance)
                     }
-                    if let interactions = displayedSubstance.interactions {
+                    if let interactions = currentSubstance.interactions {
                         Section("Interactions") {
                             InteractionsGroup(
                                 interactions: interactions,
-                                substance: displayedSubstance
+                                substance: currentSubstance
                             )
                         }
                     }
-                    if displayedSubstance.tolerance != nil || !displayedSubstance.crossTolerances.isEmpty {
-                        ToleranceSection(substance: displayedSubstance)
+                    if currentSubstance.tolerance != nil || !currentSubstance.crossTolerances.isEmpty {
+                        ToleranceSection(substance: currentSubstance)
                     }
-                    if !displayedSubstance.toxicities.isEmpty {
-                        ToxicitySection(substance: displayedSubstance)
+                    if !currentSubstance.toxicities.isEmpty {
+                        ToxicitySection(substance: currentSubstance)
                     }
                 }
                 Group {
-                    if let acute = displayedSubstance.generalRisks {
+                    if let acute = currentSubstance.generalRisks {
                         Section("Acute Risk") {
                             Text(acute)
                         }
                     }
-                    if let longTerm = displayedSubstance.longtermRisks {
+                    if let longTerm = currentSubstance.longtermRisks {
                         Section("Long-term Risk") {
                             Text(longTerm)
                         }
                     }
-                    if !displayedSubstance.saferUse.isEmpty {
+                    if !currentSubstance.saferUse.isEmpty {
                         Section("Safer Use") {
-                            ForEach(displayedSubstance.saferUse, id: \.self) { point in
+                            ForEach(currentSubstance.saferUse, id: \.self) { point in
                                 Text(point)
                             }
                         }
                     }
-                    if let addictionPotential = displayedSubstance.addictionPotential {
+                    if let addictionPotential = currentSubstance.addictionPotential {
                         Section("Addiction Potential") {
                             Text(addictionPotential)
                         }
                     }
                 }
             }
-
         }
         .toolbar {
-            if displayedSubstance.categories.contains("custom") {
+            if currentSubstance.categories.contains("custom") {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Edit") {
                         isShowingEditCustomSubstanceSheet = true
@@ -127,26 +124,26 @@ struct SubstanceScreen: View {
             ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink(
                     "Article",
-                    value: GlobalNavigationDestination.webView(articleURL: displayedSubstance.url)
+                    value: GlobalNavigationDestination.webView(articleURL: currentSubstance.url)
                 )
             }
         }
         .sheet(isPresented: $isShowingEditCustomSubstanceSheet) {
             AddCustomSubstanceView(
-                searchText: displayedSubstance.name,
-                editingModernName: displayedSubstance.name
+                searchText: currentSubstance.name,
+                editingModernName: currentSubstance.name
             ) { arguments in
                 currentCustomName = arguments.substanceName
             }
         }
         .fullScreenCover(isPresented: $isShowingAddIngestionSheet) {
             NavigationStack {
-                AcknowledgeInteractionsView(substance: displayedSubstance) {
+                AcknowledgeInteractionsView(substance: currentSubstance) {
                     isShowingAddIngestionSheet.toggle()
                 }
             }
         }
-        .navigationTitle(displayedSubstance.name)
+        .navigationTitle(currentSubstance.name)
     }
 }
 
