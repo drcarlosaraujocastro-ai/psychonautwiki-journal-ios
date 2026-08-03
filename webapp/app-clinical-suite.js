@@ -1,0 +1,120 @@
+'use strict';
+
+/* Clinical Suite v1
+ * Focused, local-first tools that use the existing Journal data without changing
+ * the canonical PW catalog. Loaded after app-stability-ui.js.
+ */
+(function(){
+  const escx=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const num=v=>{const n=Number(v);return Number.isFinite(n)?n:null};
+  const same=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
+
+  function ensureSuite(){
+    state.medicationSchedules=Array.isArray(state.medicationSchedules)?state.medicationSchedules:[];
+    state.clinicalSuiteSettings={adherenceWindowMin:90,...(state.clinicalSuiteSettings||{})};
+    for(const s of state.medicationSchedules){
+      s.id=s.id||uuid();s.substanceName=String(s.substanceName||'').trim();s.route=s.route||'ORAL';s.unit=s.unit||'mg';
+      s.times=Array.isArray(s.times)?s.times:[];s.weekdays=Array.isArray(s.weekdays)?s.weekdays:[0,1,2,3,4,5,6];
+      s.windowMin=Math.max(15,num(s.windowMin)??state.clinicalSuiteSettings.adherenceWindowMin);s.kind=s.kind==='prn'?'prn':'scheduled';s.active=s.active!==false;
+    }
+  }
+  function allIngs(){return(state.experiences||[]).flatMap(e=>(e.ingestions||[]).map(i=>({...i,experienceId:e.id}))).filter(i=>Number.isFinite(Number(i.time))).sort((a,b)=>a.time-b.time)}
+  function dateKey(ts){const d=new Date(ts);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+  function dayBounds(ts=Date.now()){const d=new Date(ts);const a=new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();return[a,a+864e5]}
+  function parseTimes(v){return [...new Set(String(v||'').split(/[;,\s]+/).map(x=>x.trim()).filter(x=>/^([01]?\d|2[0-3]):[0-5]\d$/.test(x)).map(x=>{const [h,m]=x.split(':');return `${String(Number(h)).padStart(2,'0')}:${m}`}))].sort()}
+  function scheduleSuggestions(q){q=String(q||'').trim().toLowerCase();if(!q)return[];const out=[];for(const s of allSubstances()){const n=String(s.name||'');if(n.toLowerCase().includes(q)||(s.commonNames||[]).some(a=>String(a).toLowerCase().includes(q))){out.push(n);if(out.length>=8)break}}return out}
+
+  function scheduleInstances(ts=Date.now()){
+    ensureSuite();const [a,b]=dayBounds(ts),d=new Date(a),wd=d.getDay(),out=[];
+    for(const s of state.medicationSchedules.filter(x=>x.active&&x.kind==='scheduled'&&x.weekdays.includes(wd))){
+      for(const t of s.times){const [h,m]=t.split(':').map(Number),when=new Date(d.getFullYear(),d.getMonth(),d.getDate(),h,m).getTime();out.push({schedule:s,time:when})}
+    }
+    return out.sort((x,y)=>x.time-y.time);
+  }
+  function adherenceForDay(ts=Date.now()){
+    const xs=scheduleInstances(ts),[a,b]=dayBounds(ts),ings=allIngs().filter(i=>i.time>=a-4*3600e3&&i.time<b+4*3600e3),used=new Set(),now=Date.now();
+    return xs.map(x=>{
+      const s=x.schedule,w=(s.windowMin||90)*60000;let best=null;
+      for(const i of ings){if(used.has(i.id)||!same(i.substanceName,s.substanceName))continue;const delta=i.time-x.time;if(Math.abs(delta)>w)continue;if(!best||Math.abs(delta)<Math.abs(best.delta))best={ing:i,delta}}
+      if(best){used.add(best.ing.id);return{...x,status:Math.abs(best.delta)<=15*60000?'no horário':'registrado',...best}}
+      if(now<x.time-w)return{...x,status:'próximo',ing:null,delta:null};
+      if(now<=x.time+w)return{...x,status:'janela atual',ing:null,delta:null};
+      return{...x,status:'não registrado',ing:null,delta:null};
+    });
+  }
+
+  function renderSchedules(){
+    ensureSuite();topbar('Plano de horários',{back:true,backLabel:'Clínico',right:'<button class="navbtn" data-suite-action="new-schedule">＋</button>'});
+    const today=adherenceForDay(),scheduled=state.medicationSchedules.filter(x=>x.active&&x.kind==='scheduled'),prn=state.medicationSchedules.filter(x=>x.active&&x.kind==='prn');
+    const taken=today.filter(x=>x.ing).length,missing=today.filter(x=>x.status==='não registrado').length;
+    $('#screen').innerHTML=`
+      <div class="clinical-hero"><div><div class="clinical-hero-title">Hoje</div><div class="row-sub">${today.length} dose(s) planejada(s) · ${taken} registrada(s)${missing?` · ${missing} sem registro`:''}</div></div><button class="primary compact" data-suite-action="new-schedule">＋ Horário</button></div>
+      <div class="section-caption">Adesão de hoje</div><div class="card">${today.map(x=>{const d=x.delta==null?'':`${x.delta>=0?'+':''}${Math.round(x.delta/60000)} min`;return`<div class="list-row"><div class="schedule-status ${x.ing?'ok':x.status==='não registrado'?'warn':'neutral'}"></div><div class="row-main"><div class="row-title strong">${escx(x.schedule.substanceName)} · ${fmtTime(x.time)}</div><div class="row-sub">${x.schedule.dose??'—'} ${escx(x.schedule.unit)} · ${escx(x.status)}${d?` · ${d}`:''}</div></div></div>`}).join('')||'<div class="empty">Nenhuma dose programada para hoje.</div>'}</div>
+      <div class="section-caption">Esquema programado</div>${scheduled.map(s=>scheduleCard(s)).join('')||'<div class="card empty">Nenhum horário programado.</div>'}
+      ${prn.length?`<div class="section-caption">Se necessário (PRN)</div>${prn.map(s=>scheduleCard(s)).join('')}`:''}
+      <div class="section-footer">A tela compara horários planejados com ingestões registradas no Journal. “Não registrado” significa ausência de registro no app, não confirma que a dose não foi tomada.</div>`;
+  }
+  function scheduleCard(s){return`<div class="card" style="margin-bottom:10px"><button class="list-row" data-suite-action="edit-schedule" data-schedule-id="${escx(s.id)}"><div class="row-main"><div class="row-title strong">${escx(s.substanceName)}</div><div class="row-sub">${s.kind==='prn'?'PRN':s.times.join(' · ')} · ${s.dose??'—'} ${escx(s.unit)} · ${escx(s.route)}</div></div><span class="chev">›</span></button></div>`}
+
+  function scheduleForm(id=null){
+    ensureSuite();const old=id?state.medicationSchedules.find(x=>x.id===id):null;const s=old||{substanceName:'',dose:'',unit:'mg',route:'ORAL',times:['08:00'],weekdays:[0,1,2,3,4,5,6],windowMin:90,kind:'scheduled',active:true};
+    modal(`${modalHeader(old?'Editar horário':'Adicionar horário',`<button class="navbtn" data-suite-action="save-schedule" data-schedule-id="${escx(old?.id||'')}">Salvar</button>`,'Cancelar')}<div style="padding:8px 14px 36px">
+      <div class="section-caption">Medicamento</div><div class="card"><div class="fieldrow"><label>Nome</label><input id="sch-name" autocomplete="off" value="${escx(s.substanceName)}" placeholder="Digite o medicamento"></div><div id="sch-suggestions"></div><div class="fieldrow"><label>Dose</label><input id="sch-dose" type="number" step="any" inputmode="decimal" value="${s.dose??''}"><input id="sch-unit" style="max-width:72px" value="${escx(s.unit)}"></div><div class="fieldrow"><label>Via</label><select id="sch-route">${['ORAL','SUBLINGUAL','BUCCAL','INHALED','INTRAMUSCULAR','INTRAVENOUS','SUBCUTANEOUS','TRANSDERMAL','OTHER'].map(r=>`<option ${r===s.route?'selected':''}>${r}</option>`).join('')}</select></div></div>
+      <div class="section-caption">Plano</div><div class="card"><div class="fieldrow"><label>Tipo</label><select id="sch-kind"><option value="scheduled" ${s.kind!=='prn'?'selected':''}>Horário programado</option><option value="prn" ${s.kind==='prn'?'selected':''}>Se necessário (PRN)</option></select></div><div class="fieldrow"><label>Horários</label><input id="sch-times" value="${escx(s.times.join(', '))}" placeholder="08:00, 20:00"></div><div class="fieldrow"><label>Janela de comparação</label><input id="sch-window" type="number" min="15" max="360" value="${s.windowMin||90}"><span>min</span></div></div>
+      ${old?`<div class="section-caption">Ações</div><div class="card"><button class="destructive" data-suite-action="delete-schedule" data-schedule-id="${escx(old.id)}">Excluir este horário</button></div>`:''}</div>`);
+    const i=$('#sch-name'),box=$('#sch-suggestions');const paint=()=>{const xs=scheduleSuggestions(i.value);box.innerHTML=xs.length?xs.map(n=>`<button type="button" class="linkrow" data-suite-action="pick-schedule-substance" data-stock-name="${escx(n)}">${escx(n)}</button>`).join(''):''};i.oninput=paint;
+  }
+  async function saveSchedule(id){ensureSuite();const name=$('#sch-name')?.value.trim(),dose=num($('#sch-dose')?.value),times=parseTimes($('#sch-times')?.value),kind=$('#sch-kind')?.value==='prn'?'prn':'scheduled';if(!name){toast('Informe o medicamento.');return}if(dose==null||dose<0){toast('Informe uma dose válida.');return}if(kind==='scheduled'&&!times.length){toast('Informe pelo menos um horário no formato 08:00.');return}const obj={id:id||uuid(),substanceName:name,dose,unit:$('#sch-unit')?.value.trim()||'mg',route:$('#sch-route')?.value||'ORAL',times:kind==='scheduled'?times:[],weekdays:[0,1,2,3,4,5,6],windowMin:Math.max(15,num($('#sch-window')?.value)??90),kind,active:true,updatedAt:Date.now()};const idx=state.medicationSchedules.findIndex(x=>x.id===obj.id);if(idx>=0)state.medicationSchedules[idx]={...state.medicationSchedules[idx],...obj};else state.medicationSchedules.push(obj);await saveState();closeModal();toast('Plano salvo.');renderSchedules()}
+
+  function dataQuality(){
+    ensureSuite();const issues=[],ings=allIngs(),ids=new Set();
+    for(const i of ings){if(!i.id)issues.push({sev:'alta',label:'Ingestão sem ID',detail:`${i.substanceName||'Substância'} · ${fmtDate(i.time)}`});else if(ids.has(i.id))issues.push({sev:'alta',label:'ID de ingestão duplicado',detail:i.id});else ids.add(i.id);if(!Number.isFinite(Number(i.dose))||Number(i.dose)<0)issues.push({sev:'alta',label:'Dose inválida',detail:`${i.substanceName} · ${i.dose}`});if(!Number.isFinite(Number(i.time)))issues.push({sev:'alta',label:'Horário inválido',detail:i.substanceName||'Ingestão'});if(!findSubstance(i.substanceName))issues.push({sev:'média',label:'Substância sem perfil no banco',detail:i.substanceName||'—'})}
+    for(let n=1;n<ings.length;n++){const a=ings[n-1],b=ings[n];if(same(a.substanceName,b.substanceName)&&Number(a.dose)===Number(b.dose)&&Math.abs(a.time-b.time)<=2*60000)issues.push({sev:'média',label:'Possível registro duplicado',detail:`${b.substanceName} ${b.dose} ${b.units} · ${fmtDate(b.time)} ${fmtTime(b.time)}`})}
+    const lots=state.inventoryLots||[];const lotIds=new Set(lots.map(l=>l.id));for(const l of lots){if(!l.substanceName)issues.push({sev:'alta',label:'Lote sem medicamento',detail:l.id||'—'});if(num(l.quantityRemaining)==null||Number(l.quantityRemaining)<0)issues.push({sev:'alta',label:'Saldo de estoque inválido',detail:l.substanceName||l.id});if(l.stockMode==='units'&&!(Number(l.strengthMgPerUnit)>0))issues.push({sev:'alta',label:'Lote por unidade sem mg/unidade',detail:l.substanceName});if(l.expiryDate&&Date.parse(l.expiryDate)<Date.now()&&Number(l.quantityRemaining)>0)issues.push({sev:'média',label:'Lote vencido com saldo',detail:`${l.substanceName} · ${l.expiryDate}`})}
+    for(const m of state.inventoryMovements||[]){for(const a of m.allocations||[])if(!lotIds.has(a.lotId))issues.push({sev:'média',label:'Movimentação aponta para lote inexistente',detail:m.substanceName||m.id})}
+    for(const s of state.medicationSchedules)if(!findSubstance(s.substanceName))issues.push({sev:'baixa',label:'Plano sem perfil de substância',detail:s.substanceName});
+    return issues;
+  }
+  function renderDataQuality(){const xs=dataQuality(),count=k=>xs.filter(x=>x.sev===k).length;topbar('Qualidade dos dados',{back:true,backLabel:'Clínico'});$('#screen').innerHTML=`<div class="clinical-dashboard"><div class="quality-tile"><b>${count('alta')}</b><span>alta prioridade</span></div><div class="quality-tile"><b>${count('média')}</b><span>revisar</span></div></div><div class="section-caption">Achados</div><div class="card">${xs.map(x=>`<div class="list-row"><div class="quality-dot ${x.sev}"></div><div class="row-main"><div class="row-title">${escx(x.label)}</div><div class="row-sub">${escx(x.detail)}</div></div></div>`).join('')||'<div class="empty">Nenhuma inconsistência estrutural detectada.</div>'}</div><div class="section-footer">Este verificador procura inconsistências no banco local. Ele não valida se uma dose ou conduta clínica é apropriada para um indivíduo.</div>`}
+
+  function safetyFlags(){
+    const out=[],recent=allIngs().filter(i=>Date.now()-i.time<=36*3600e3),seen=new Set();
+    for(let a=0;a<recent.length;a++)for(let b=a+1;b<recent.length;b++){const x=recent[a],y=recent[b];if(same(x.substanceName,y.substanceName))continue;const key=[x.substanceName,y.substanceName].sort().join('|');if(seen.has(key))continue;seen.add(key);try{const hit=typeof interactionBetween==='function'?interactionBetween(findSubstance(x.substanceName),findSubstance(y.substanceName)):null;if(hit)out.push({sev:hit.severity==='dangerous'?'alta':'média',label:`${x.substanceName} + ${y.substanceName}`,detail:hit.reason||hit.severity})}catch(e){}}
+    for(const i of recent){try{const p=typeof clinicalProfileEffective==='function'?clinicalProfileEffective(i.substanceName):window.ClinicalEngine?.profile?.(i.substanceName);const db=p?.doseBands||{},mx=db.maxTherapeutic??db.maxTherapeuticSingle;if(mx!=null&&same(String(i.units).toLowerCase(),String(db.unit||'mg').toLowerCase())&&Number(i.dose)>Number(mx))out.push({sev:'alta',label:`Dose acima da faixa terapêutica cadastrada · ${i.substanceName}`,detail:`${i.dose} ${i.units} > ${mx} ${db.unit||i.units}`})}catch(e){}}
+    try{for(const r of (typeof classifyRedoses==='function'?classifyRedoses():[]).slice(0,8))if(Date.now()-r.b.time<=36*3600e3)out.push({sev:r.kind==='near-duplicate'?'alta':'média',label:`${r.b.substanceName} · ${r.kind}`,detail:`intervalo ${r.dt.toFixed(1)} h · duração modelada ${r.dur.toFixed(1)} h`})}catch(e){}
+    return out;
+  }
+  function renderSafetyReview(){const xs=safetyFlags();topbar('Revisão de segurança',{back:true,backLabel:'Clínico'});$('#screen').innerHTML=`<div class="section-caption">Últimas 36 horas</div><div class="card">${xs.map(x=>`<div class="list-row"><div class="quality-dot ${x.sev}"></div><div class="row-main"><div class="row-title strong">${escx(x.label)}</div><div class="row-sub">${escx(x.detail)}</div></div></div>`).join('')||'<div class="empty">Nenhum alerta derivado dos modelos disponíveis.</div>'}</div><button class="primary" data-clinical-action="now">Abrir previsão de efeitos atuais</button><div class="section-footer">Alertas são triagem de interação, sobreposição e faixas cadastradas. Ausência de alerta não significa combinação segura; presença de alerta exige interpretação clínica.</div>`}
+
+  function renderObserved(){topbar('Resposta individual',{back:true,backLabel:'Clínico'});const names=[...new Set(allIngs().map(i=>i.substanceName))],profiles=names.map(n=>window.ObservedResponse?.profileFor?.(n)).filter(p=>p?.n).sort((a,b)=>b.n-a.n);$('#screen').innerHTML=`<div class="section-caption">Aprendizado com check-ins</div>${profiles.map(p=>`<div class="card" style="margin-bottom:10px"><div class="kv"><span>${escx(p.name)}</span><b>${p.n} observação(ões)</b></div><div class="row-sub">Confiança interna ${Math.round((p.confidence||0)*100)}%</div>${p.phases.map(ph=>`<div class="summary" style="padding-top:9px"><b>${escx(ph.phase)}</b> · n=${ph.n}<br>${[['mood','humor'],['anxiety','ansiedade'],['energy','energia'],['focus','foco'],['sedation','sedação']].map(([k,l])=>ph.metrics[k]==null?'':`${l} ${ph.metrics[k].toFixed(1)}/10`).filter(Boolean).join(' · ')}</div>`).join('')}</div>`).join('')||'<div class="card empty">Ainda não há check-ins suficientes ligados temporalmente às doses.</div>'}<div class="section-footer">A camada individual não substitui a curva canônica; ela mostra o padrão observado neste dispositivo.</div>`}
+
+  function summaryText(){ensureSuite();const today=adherenceForDay(),recent=allIngs().filter(i=>Date.now()-i.time<=24*3600e3),ci=(state.clinicalCheckins||[]).slice().sort((a,b)=>b.time-a.time)[0],lows=typeof lowStockAlerts==='function'?lowStockAlerts():[],dq=dataQuality();const lines=['RESUMO CLÍNICO DO JOURNAL',`Gerado: ${new Date().toLocaleString('pt-BR')}`,'',`Registros nas últimas 24 h: ${recent.length}`,...recent.map(i=>`• ${fmtTime(i.time)} — ${i.substanceName} ${i.dose??'—'} ${i.units||''} ${i.administrationRoute||''}`),'',`Plano de hoje: ${today.length} dose(s); ${today.filter(x=>x.ing).length} com registro; ${today.filter(x=>x.status==='não registrado').length} sem registro.`];if(ci)lines.push('',`Último check-in: ${fmtDate(ci.time)} ${fmtTime(ci.time)} | humor ${ci.mood}/10 | ansiedade ${ci.anxiety}/10 | energia ${ci.energy}/10 | foco ${ci.focus}/10 | sedação ${ci.sedation}/10${ci.heartRate?` | FC ${ci.heartRate}`:''}${ci.bloodPressure?` | PA ${ci.bloodPressure}`:''}`);lines.push('',`Estoque baixo: ${lows.length} lote(s).`,`Qualidade dos dados: ${dq.filter(x=>x.sev==='alta').length} achado(s) de alta prioridade; ${dq.filter(x=>x.sev==='média').length} para revisão.`,'','Resumo automático para revisão; não constitui diagnóstico nem prescrição.');return lines.join('\n')}
+  function renderSummary(){const txt=summaryText();topbar('Resumo clínico',{back:true,backLabel:'Clínico'});$('#screen').innerHTML=`<div class="card"><pre class="clinical-summary-text">${escx(txt)}</pre></div><button class="primary" data-suite-action="copy-summary">Copiar resumo</button>`}
+
+  function renderSuiteHub(){
+    ensureSuite();topbar('Clínico',{large:'Clínico'});const ci=(state.clinicalCheckins||[]).slice().sort((a,b)=>b.time-a.time)[0],today=adherenceForDay(),lows=typeof lowStockAlerts==='function'?lowStockAlerts():[],quality=dataQuality();
+    $('#screen').innerHTML=`
+      <div class="clinical-dashboard"><button class="clinical-feature" data-clinical-action="now"><div class="feature-icon">◉</div><div><strong>Agora</strong><span>Fases ativas, PK/PD e efeitos previstos</span></div><span class="chev">›</span></button><button class="clinical-feature" data-clinical-action="checkin"><div class="feature-icon">✓</div><div><strong>Check-in</strong><span>${ci?`${fmtDate(ci.time)} ${fmtTime(ci.time)}`:'Sintomas, vitais e resposta'}</span></div><span class="chev">›</span></button></div>
+      <div class="section-caption">Monitoramento</div><div class="card clinical-menu-card"><button class="list-row" data-suite-action="observed"><div class="row-main"><div class="row-title strong">Resposta individual</div><div class="row-sub">Aprendizado por fase a partir dos check-ins</div></div><span class="chev">›</span></button><button class="list-row" data-suite-action="safety"><div class="row-main"><div class="row-title">Revisão de segurança</div><div class="row-sub">Interações, sobreposição e faixas de dose</div></div><span class="chev">›</span></button></div>
+      <div class="section-caption">Tratamento</div><div class="card clinical-menu-card"><button class="list-row" data-suite-action="schedules"><div class="row-main"><div class="row-title strong">Plano de horários e adesão</div><div class="row-sub">${today.filter(x=>x.ing).length}/${today.length||0} registros compatíveis hoje</div></div><span class="chev">›</span></button><button class="list-row" data-clinical-action="treatment"><div class="row-main"><div class="row-title">Esquema terapêutico</div><div class="row-sub">Alvos, formulações e farmacologia por mecanismo</div></div><span class="chev">›</span></button><button class="list-row" data-clinical-action="inventory"><div class="row-main"><div class="row-title">Estoque</div><div class="row-sub">${(state.inventoryLots||[]).length} lote(s)${lows.length?` · ${lows.length} baixo(s)`:''}</div></div><span class="chev">›</span></button></div>
+      <div class="section-caption">Inteligência</div><div class="card clinical-menu-card"><button class="list-row" data-clinical-action="intelligence"><div class="row-main"><div class="row-title strong">Inteligência clínica</div><div class="row-sub">Histórico, hipóteses, eixos e manejo</div></div><span class="chev">›</span></button><button class="list-row" data-clinical-action="redose"><div class="row-main"><div class="row-title">Redose e sobreposição</div><div class="row-sub">Intervalos, extensão e carry-over</div></div><span class="chev">›</span></button></div>
+      <div class="section-caption">Dados</div><div class="card clinical-menu-card"><button class="list-row" data-suite-action="summary"><div class="row-main"><div class="row-title strong">Resumo clínico</div><div class="row-sub">Visão compacta das últimas 24 horas</div></div><span class="chev">›</span></button><button class="list-row" data-suite-action="quality"><div class="row-main"><div class="row-title">Qualidade dos dados</div><div class="row-sub">${quality.length?`${quality.length} item(ns) para revisão`:'Sem inconsistências estruturais detectadas'}</div></div><span class="chev">›</span></button><button class="list-row" data-clinical-action="stats"><div class="row-main"><div class="row-title">Estatísticas</div><div class="row-sub">Totais e uso longitudinal do Journal</div></div><span class="chev">›</span></button></div>`;
+  }
+
+  const style=document.createElement('style');style.textContent=`.schedule-status{width:9px;height:9px;border-radius:50%;flex:0 0 9px}.schedule-status.ok{background:#34c759}.schedule-status.warn{background:#ff9f0a}.schedule-status.neutral{background:#8e8e93}.quality-dot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}.quality-dot.alta{background:#ff3b30}.quality-dot.média{background:#ff9f0a}.quality-dot.baixa{background:#8e8e93}.quality-tile{background:var(--card,#fff);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:3px}.quality-tile b{font-size:25px}.quality-tile span{font-size:12px;color:var(--secondary,#8e8e93)}.clinical-summary-text{white-space:pre-wrap;word-break:break-word;font:13px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text",sans-serif;margin:0;padding:4px}`;document.head.appendChild(style);
+
+  document.addEventListener('click',async e=>{
+    const t=e.target.closest('[data-suite-action]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();const a=t.dataset.suiteAction;
+    if(a==='schedules')renderSchedules();else if(a==='new-schedule')scheduleForm();else if(a==='edit-schedule')scheduleForm(t.dataset.scheduleId);else if(a==='pick-schedule-substance'){const i=$('#sch-name');if(i){i.value=t.dataset.stockName||'';const b=$('#sch-suggestions');if(b)b.innerHTML=''}}else if(a==='save-schedule')await saveSchedule(t.dataset.scheduleId||null);else if(a==='delete-schedule'){if(confirm('Excluir este horário planejado?')){state.medicationSchedules=state.medicationSchedules.filter(x=>x.id!==t.dataset.scheduleId);await saveState();closeModal();renderSchedules()}}else if(a==='quality')renderDataQuality();else if(a==='safety')renderSafetyReview();else if(a==='observed')renderObserved();else if(a==='summary')renderSummary();else if(a==='copy-summary'){try{await navigator.clipboard.writeText(summaryText());toast('Resumo copiado.')}catch(err){toast('Não foi possível copiar automaticamente.')}}
+  },true);
+
+  if(typeof journalPayload==='function'){
+    const base=journalPayload;journalPayload=function(){const p=base();ensureSuite();p.clinicalData={...(p.clinicalData||{}),medicationSchedules:state.medicationSchedules,clinicalSuiteSettings:state.clinicalSuiteSettings};return p};
+  }
+  if(typeof importJournal==='function'){
+    const base=importJournal;importJournal=async function(file){let extra=null;try{extra=JSON.parse(await file.text())?.clinicalData||null}catch(e){}await base(file);if(extra){state.medicationSchedules=extra.medicationSchedules||state.medicationSchedules||[];state.clinicalSuiteSettings=extra.clinicalSuiteSettings||state.clinicalSuiteSettings||{};ensureSuite();await saveState()}};
+  }
+
+  window.renderClinicalHub=renderClinicalHub=renderSuiteHub;
+  window.ClinicalSuite={ensure:ensureSuite,adherenceForDay,dataQuality,safetyFlags,render:renderSuiteHub,version:'1.0'};
+})();
