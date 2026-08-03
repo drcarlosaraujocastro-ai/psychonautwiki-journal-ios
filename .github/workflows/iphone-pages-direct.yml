@@ -19,6 +19,7 @@ on:
       - 'webapp/app-clinical-hooks.js'
       - 'webapp/app-storage-guard.js'
       - 'webapp/app-ptbr.js'
+      - 'webapp/app-ptbr-shell.js'
       - 'webapp/app-stability-ui.js'
       - 'webapp/app-clinical-suite.js'
       - 'webapp/app-inventory-ledger.js'
@@ -29,6 +30,7 @@ on:
       - 'webapp/app-regimen-intelligence.js'
       - 'webapp/app-personal-analytics.js'
       - 'webapp/app-diagnostics.js'
+      - 'webapp/app-live-effects-v2.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
@@ -78,6 +80,7 @@ jobs:
           cp webapp/app-clinical-hooks.js _site/app-clinical-hooks.js
           cp webapp/app-storage-guard.js _site/app-storage-guard.js
           cp webapp/app-ptbr.js _site/app-ptbr.js
+          cp webapp/app-ptbr-shell.js _site/app-ptbr-shell.js
           cp webapp/app-stability-ui.js _site/app-stability-ui.js
           cp webapp/app-clinical-suite.js _site/app-clinical-suite.js
           cp webapp/app-inventory-ledger.js _site/app-inventory-ledger.js
@@ -88,6 +91,7 @@ jobs:
           cp webapp/app-regimen-intelligence.js _site/app-regimen-intelligence.js
           cp webapp/app-personal-analytics.js _site/app-personal-analytics.js
           cp webapp/app-diagnostics.js _site/app-diagnostics.js
+          cp webapp/app-live-effects-v2.js _site/app-live-effects-v2.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
@@ -112,6 +116,8 @@ jobs:
           test -s _site/app-regimen-intelligence.js
           test -s _site/app-formulation-manager.js
           test -s _site/app-diagnostics.js
+          test -s _site/app-live-effects-v2.js
+          test -s _site/app-ptbr-shell.js
       - name: Check JavaScript syntax
         shell: bash
         run: |
