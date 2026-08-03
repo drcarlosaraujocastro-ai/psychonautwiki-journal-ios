@@ -27,6 +27,7 @@ on:
       - 'webapp/app-smart-pkpd-lab.js'
       - 'webapp/app-formulation-manager.js'
       - 'webapp/app-regimen-intelligence.js'
+      - 'webapp/app-personal-analytics.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
@@ -84,6 +85,7 @@ jobs:
           cp webapp/app-smart-pkpd-lab.js _site/app-smart-pkpd-lab.js
           cp webapp/app-formulation-manager.js _site/app-formulation-manager.js
           cp webapp/app-regimen-intelligence.js _site/app-regimen-intelligence.js
+          cp webapp/app-personal-analytics.js _site/app-personal-analytics.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
