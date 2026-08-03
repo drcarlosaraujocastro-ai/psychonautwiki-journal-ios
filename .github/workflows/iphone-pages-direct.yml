@@ -18,6 +18,7 @@ on:
       - 'webapp/app-clinical-force-nav.js'
       - 'webapp/app-clinical-hooks.js'
       - 'webapp/app-storage-guard.js'
+      - 'webapp/app-ptbr.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
@@ -66,6 +67,7 @@ jobs:
           cp webapp/app-clinical-force-nav.js _site/app-clinical-force-nav.js
           cp webapp/app-clinical-hooks.js _site/app-clinical-hooks.js
           cp webapp/app-storage-guard.js _site/app-storage-guard.js
+          cp webapp/app-ptbr.js _site/app-ptbr.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
