@@ -1,7 +1,9 @@
 'use strict';
 
-/* Camada de localização pt-BR e refinamentos do estoque clínico.
- * Mantém os IDs/valores internos em inglês para compatibilidade, traduzindo apenas a UI.
+/* Localização pt-BR do módulo clínico/estoque.
+ * IMPORTANTE: não usa MutationObserver global. Em iOS/Safari isso podia disparar
+ * varreduras repetidas de todo o DOM ao abrir modais com centenas de opções,
+ * congelando a PWA. A localização agora é aplicada apenas após renders conhecidos.
  */
 (function(){
   const MAP=new Map([
@@ -24,32 +26,28 @@
     ['Done','Concluir'],['Cancel','Cancelar'],['Delete','Excluir'],['Back','Voltar']
   ]);
 
+  const PLACEHOLDERS={
+    'Symptoms, perceived effects, adverse effects, context...':'Sintomas, efeitos percebidos, efeitos adversos, contexto...',
+    'hours':'horas','Notes':'Notas','Search substances':'Buscar substâncias','Search experiences':'Buscar registros'
+  };
+
   function exactText(el){return el&&el.childNodes?.length===1&&el.firstChild?.nodeType===Node.TEXT_NODE?el.textContent.trim():null}
   function localize(root=document){
+    if(!root?.querySelectorAll)return;
     root.querySelectorAll('label,button,.section-title,.section-caption,.row-title,.row-sub,.navtitle,.large-title,.kv span,.kv b,.chip').forEach(el=>{
       const txt=exactText(el);if(txt&&MAP.has(txt))el.textContent=MAP.get(txt);
     });
-    root.querySelectorAll('input,textarea').forEach(el=>{
-      const p=el.getAttribute('placeholder');
-      const pm={
-        'Symptoms, perceived effects, adverse effects, context...':'Sintomas, efeitos percebidos, efeitos adversos, contexto...',
-        'hours':'horas','Notes':'Notas','Search substances':'Buscar substâncias','Search experiences':'Buscar registros'
-      };
-      if(p&&pm[p])el.setAttribute('placeholder',pm[p]);
-    });
-    root.querySelectorAll('select option').forEach(o=>{
-      const t=o.textContent.trim();if(MAP.has(t))o.textContent=MAP.get(t);
-    });
+    root.querySelectorAll('input,textarea').forEach(el=>{const p=el.getAttribute('placeholder');if(p&&PLACEHOLDERS[p])el.setAttribute('placeholder',PLACEHOLDERS[p])});
+    root.querySelectorAll('select option').forEach(o=>{const t=o.textContent.trim();if(MAP.has(t))o.textContent=MAP.get(t)});
   }
 
-  function formatDateBR(v){
-    if(!v)return '—'; const d=new Date(v.length===10?v+'T12:00:00':v);if(Number.isNaN(d.getTime()))return v;
-    return d.toLocaleDateString('pt-BR');
+  function localizeSoon(root=document){
+    requestAnimationFrame(()=>{try{localize(root)}catch(err){console.warn('pt-BR localization skipped',err)}});
   }
 
   function injectInventoryEnhancements(){
     const screen=document.querySelector('#screen');if(!screen||document.querySelector('#ptbr-stock-tools'))return;
-    const lots=state.inventoryLots||[], movements=state.inventoryMovements||[];
+    const lots=state.inventoryLots||[],movements=state.inventoryMovements||[];
     const activeLots=lots.filter(l=>Number(l.quantityRemaining??l.quantityInitial??0)>0);
     const expiring=activeLots.filter(l=>l.expiryDate&&Date.parse(l.expiryDate)>=Date.now()&&Date.parse(l.expiryDate)<=Date.now()+30*864e5).length;
     const expired=activeLots.filter(l=>l.expiryDate&&Date.parse(l.expiryDate)<Date.now()).length;
@@ -69,13 +67,20 @@
     const xs=(state.inventoryMovements||[]).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     $('#screen').innerHTML=`<div class="section-title">Movimentações</div><div class="card">${xs.slice(0,100).map(m=>{
       const alloc=(m.allocations||[]).map(a=>a.stockMode==='units'?`${Number(a.amount||0).toFixed(2)} un.`:`${Number(a.amount||0).toFixed(2)} mg`).join(' + ');
-      return `<div class="list-row"><div class="row-main"><div class="row-title strong">${esc(m.substanceName||'Medicamento')}</div><div class="row-sub">${m.reversedAt?'Estornado':'Consumo'} · ${Number(m.doseMg||0).toFixed(3)} mg${alloc?` · ${alloc}`:''}${m.shortageMg>0?` · falta coberta: não (${Number(m.shortageMg).toFixed(3)} mg)`:''}</div><div class="row-sub">${m.createdAt?new Date(m.createdAt).toLocaleString('pt-BR'):'—'}${m.reversedAt?` · estornado em ${new Date(m.reversedAt).toLocaleString('pt-BR')}`:''}</div></div></div>`;
-    }).join('')||'<div class="empty">Nenhuma movimentação registrada.</div>'}</div><div class="section-footer">O histórico vincula descontos e estornos às ingestões. Excluir ou editar uma ingestão deve estornar o consumo anterior antes de recalcular o estoque.</div>`;
+      return `<div class="list-row"><div class="row-main"><div class="row-title strong">${esc(m.substanceName||'Medicamento')}</div><div class="row-sub">${m.reversedAt?'Estornado':'Consumo'} · ${Number(m.doseMg||0).toFixed(3)} mg${alloc?` · ${alloc}`:''}${m.shortageMg>0?` · não coberto: ${Number(m.shortageMg).toFixed(3)} mg`:''}</div><div class="row-sub">${m.createdAt?new Date(m.createdAt).toLocaleString('pt-BR'):'—'}${m.reversedAt?` · estornado em ${new Date(m.reversedAt).toLocaleString('pt-BR')}`:''}</div></div></div>`;
+    }).join('')||'<div class="empty">Nenhuma movimentação registrada.</div>'}</div><div class="section-footer">O histórico vincula descontos e estornos às ingestões. Ao editar ou excluir uma ingestão, o consumo anterior é estornado antes do recálculo.</div>`;
   }
 
   function wrap(name,after){
     const base=window[name];if(typeof base!=='function'||base.__ptbrWrapped)return;
-    const fn=function(...args){const r=base.apply(this,args);setTimeout(()=>{localize(document);after?.()},0);return r};fn.__ptbrWrapped=true;window[name]=fn;
+    const fn=function(...args){
+      const r=base.apply(this,args);
+      requestAnimationFrame(()=>{
+        try{after?.();localize(document)}catch(err){console.warn(`pt-BR ${name}`,err)}
+      });
+      return r;
+    };
+    fn.__ptbrWrapped=true;window[name]=fn;
   }
 
   wrap('renderInventory',injectInventoryEnhancements);
@@ -85,10 +90,11 @@
   wrap('renderCheckin');
 
   document.addEventListener('click',e=>{
-    const t=e.target.closest('[data-ptbr-action="stock-audit"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();renderStockAudit();
+    const t=e.target.closest('[data-ptbr-action="stock-audit"]');if(!t)return;
+    e.preventDefault();e.stopImmediatePropagation();renderStockAudit();localizeSoon(document);
   },true);
 
-  const obs=new MutationObserver(()=>localize(document));
-  window.addEventListener('load',()=>{localize(document);obs.observe(document.body,{subtree:true,childList:true});});
-  window.PWJ_PTBR={localize,renderStockAudit,version:'1.0'};
+  window.addEventListener('load',()=>localizeSoon(document));
+  window.addEventListener('pageshow',()=>localizeSoon(document));
+  window.PWJ_PTBR={localize,renderStockAudit,version:'1.1-no-observer'};
 })();
