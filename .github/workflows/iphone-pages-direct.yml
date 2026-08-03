@@ -26,6 +26,7 @@ on:
       - 'webapp/app-inventory-ledger-bridge.js'
       - 'webapp/app-advanced-pharmacology-v2.js'
       - 'webapp/app-smart-pkpd-lab.js'
+      - 'webapp/app-smart-pkpd-residual-v2.js'
       - 'webapp/app-formulation-manager.js'
       - 'webapp/app-regimen-intelligence.js'
       - 'webapp/app-personal-analytics.js'
@@ -87,6 +88,7 @@ jobs:
           cp webapp/app-inventory-ledger-bridge.js _site/app-inventory-ledger-bridge.js
           cp webapp/app-advanced-pharmacology-v2.js _site/app-advanced-pharmacology-v2.js
           cp webapp/app-smart-pkpd-lab.js _site/app-smart-pkpd-lab.js
+          cp webapp/app-smart-pkpd-residual-v2.js _site/app-smart-pkpd-residual-v2.js
           cp webapp/app-formulation-manager.js _site/app-formulation-manager.js
           cp webapp/app-regimen-intelligence.js _site/app-regimen-intelligence.js
           cp webapp/app-personal-analytics.js _site/app-personal-analytics.js
@@ -112,6 +114,7 @@ jobs:
           test -s _site/sw.js
           test -s _site/data/substances.json
           test -s _site/app-smart-pkpd-lab.js
+          test -s _site/app-smart-pkpd-residual-v2.js
           test -s _site/app-personal-analytics.js
           test -s _site/app-regimen-intelligence.js
           test -s _site/app-formulation-manager.js
