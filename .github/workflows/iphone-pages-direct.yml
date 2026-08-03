@@ -13,6 +13,7 @@ on:
       - 'webapp/app-clinical.js'
       - 'webapp/app-clinical-reasoning.js'
       - 'webapp/app-clinical-reasoning-extra.js'
+      - 'webapp/app-clinical-shortcuts.js'
       - 'webapp/app-clinical-nav.js'
       - 'webapp/app-clinical-hooks.js'
       - 'webapp/app-journal.js'
@@ -57,6 +58,7 @@ jobs:
           cp webapp/app-clinical.js _site/app-clinical.js
           cp webapp/app-clinical-reasoning.js _site/app-clinical-reasoning.js
           cp webapp/app-clinical-reasoning-extra.js _site/app-clinical-reasoning-extra.js
+          cp webapp/app-clinical-shortcuts.js _site/app-clinical-shortcuts.js
           cp webapp/app-clinical-nav.js _site/app-clinical-nav.js
           cp webapp/app-clinical-hooks.js _site/app-clinical-hooks.js
           cp webapp/app-journal.js _site/app-journal.js
