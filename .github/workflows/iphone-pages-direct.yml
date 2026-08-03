@@ -21,6 +21,7 @@ on:
       - 'webapp/app-ptbr.js'
       - 'webapp/app-stability-ui.js'
       - 'webapp/app-clinical-suite.js'
+      - 'webapp/app-inventory-ledger.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
@@ -72,6 +73,7 @@ jobs:
           cp webapp/app-ptbr.js _site/app-ptbr.js
           cp webapp/app-stability-ui.js _site/app-stability-ui.js
           cp webapp/app-clinical-suite.js _site/app-clinical-suite.js
+          cp webapp/app-inventory-ledger.js _site/app-inventory-ledger.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
