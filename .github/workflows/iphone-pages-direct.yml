@@ -21,6 +21,7 @@ on:
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
+      - 'webapp/app-observed-response.js'
       - 'webapp/app-safer-settings.js'
       - 'webapp/app-custom-data.js'
       - 'webapp/app-events.js'
@@ -68,6 +69,7 @@ jobs:
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
+          cp webapp/app-observed-response.js _site/app-observed-response.js
           cp webapp/app-safer-settings.js _site/app-safer-settings.js
           cp webapp/app-custom-data.js _site/app-custom-data.js
           cp webapp/app-events.js _site/app-events.js
