@@ -32,8 +32,10 @@ permissions:
   pages: write
   id-token: write
 
+# Use the same global Pages concurrency group the legacy deploy used. This cancels
+# any stale in-flight legacy deployment before publishing the Clinical PWA.
 concurrency:
-  group: iphone-journal-pages-direct
+  group: pages
   cancel-in-progress: true
 
 jobs:
