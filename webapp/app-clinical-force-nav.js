@@ -11,5 +11,6 @@
   window.renderTab=function(tab){currentTab=tab;location.hash=tab;navStack=[];window.tabs();if(tab==='journal')renderJournal();else if(tab==='substances')renderSearch();else if(tab==='clinical'&&typeof renderClinicalHub==='function')renderClinicalHub();else if(tab==='workout'&&typeof renderWorkoutHub==='function')renderWorkoutHub();else if(tab==='safer')renderSafer();else if(tab==='stats')renderStats();else renderSettings()};
   document.addEventListener('click',function(e){const t=e.target.closest('[data-tab="clinical"],[data-tab="workout"]');if(!t)return;e.preventDefault();e.stopImmediatePropagation();window.renderTab(t.dataset.tab)},true);
   const refresh=()=>{try{window.tabs();const h=location.hash.replace('#','');if(h==='clinical'||h==='workout')window.renderTab(h)}catch(err){console.warn('workspace nav bootstrap',err)}};
+  const st=document.createElement('style');st.textContent='#tabbar{grid-template-columns:repeat(6,1fr)!important}.tab{font-size:9px!important}.tab svg{width:22px!important;height:22px!important}';document.head.appendChild(st);
   window.addEventListener('load',()=>setTimeout(refresh,0));window.addEventListener('pageshow',()=>setTimeout(refresh,0));setTimeout(refresh,0);
 })();
