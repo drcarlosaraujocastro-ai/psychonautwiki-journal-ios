@@ -20,6 +20,6 @@
   const baseHub=window.renderWorkoutHub;if(typeof baseHub==='function'){window.renderWorkoutHub=function(){const r=baseHub();requestAnimationFrame(injectHub);return r}}
   document.addEventListener('click',async e=>{if(e.target.closest?.('[data-woa-checkin]')){e.preventDefault();e.stopImmediatePropagation();checkinForm();return}if(e.target.closest?.('[data-woa-save-checkin]')){e.preventDefault();e.stopImmediatePropagation();await saveCheckin();return}},true);
   if(typeof journalPayload==='function'){const base=journalPayload;journalPayload=function(){const p=base();ensure();p.workoutData={plans:state.workout.plans||[],sessions:state.workout.sessions||[],customExercises:state.workout.customExercises||[],recoveryCheckins:state.workout.recoveryCheckins||[],settings:state.workout.settings||{}};return p}}
-  if(typeof importJournal==='function'){const base=importJournal;importJournal=async function(file){let wd=null;try{wd=JSON.parse(await file.text())?.workoutData||null}catch{};await base(file);if(wd){state.workout={...(state.workout||{}),...wd};ensure();await saveState()}}}
-  window.WorkoutAnalytics={version:'1.0',latestCheckin,subjectiveReadiness,weeklyRows,smartStatus};
+  if(typeof importJournal==='function'){const base=importJournal;importJournal=async function(file){let wd=null;try{wd=JSON.parse(await file.text())?.workoutData||null}catch{}const before=(state.experiences||[]).map(x=>x.id).join('|');await base(file);const after=(state.experiences||[]).map(x=>x.id).join('|');if(wd&&before!==after){state.workout={...(state.workout||{}),...wd};ensure();await saveState()}}}
+  window.WorkoutAnalytics={version:'1.0.1',latestCheckin,subjectiveReadiness,weeklyRows,smartStatus};
 })();
