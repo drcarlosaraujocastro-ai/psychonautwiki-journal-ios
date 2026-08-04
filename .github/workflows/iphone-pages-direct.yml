@@ -32,8 +32,10 @@ on:
       - 'webapp/app-personal-analytics.js'
       - 'webapp/app-diagnostics.js'
       - 'webapp/app-live-effects-v2.js'
+      - 'webapp/app-smart-checkin-v2.js'
       - 'webapp/app-workout.js'
       - 'webapp/app-workout-analytics.js'
+      - 'webapp/app-workout-progress-v2.js'
       - 'webapp/app-assisted-calibration.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
@@ -97,8 +99,10 @@ jobs:
           cp webapp/app-personal-analytics.js _site/app-personal-analytics.js
           cp webapp/app-diagnostics.js _site/app-diagnostics.js
           cp webapp/app-live-effects-v2.js _site/app-live-effects-v2.js
+          cp webapp/app-smart-checkin-v2.js _site/app-smart-checkin-v2.js
           cp webapp/app-workout.js _site/app-workout.js
           cp webapp/app-workout-analytics.js _site/app-workout-analytics.js
+          cp webapp/app-workout-progress-v2.js _site/app-workout-progress-v2.js
           cp webapp/app-assisted-calibration.js _site/app-assisted-calibration.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
@@ -126,8 +130,10 @@ jobs:
           test -s _site/app-formulation-manager.js
           test -s _site/app-diagnostics.js
           test -s _site/app-live-effects-v2.js
+          test -s _site/app-smart-checkin-v2.js
           test -s _site/app-workout.js
           test -s _site/app-workout-analytics.js
+          test -s _site/app-workout-progress-v2.js
           test -s _site/app-assisted-calibration.js
           test -s _site/app-ptbr-shell.js
       - name: Check JavaScript syntax
