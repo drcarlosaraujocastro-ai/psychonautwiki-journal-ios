@@ -39,6 +39,7 @@ on:
       - 'webapp/app-assisted-calibration.js'
       - 'webapp/app-patient-hub.js'
       - 'webapp/app-clinical-sentinel.js'
+      - 'webapp/app-ux-orchestrator.js'
       - 'webapp/app-journal.js'
       - 'webapp/app-substances.js'
       - 'webapp/app-experience.js'
@@ -108,6 +109,7 @@ jobs:
           cp webapp/app-assisted-calibration.js _site/app-assisted-calibration.js
           cp webapp/app-patient-hub.js _site/app-patient-hub.js
           cp webapp/app-clinical-sentinel.js _site/app-clinical-sentinel.js
+          cp webapp/app-ux-orchestrator.js _site/app-ux-orchestrator.js
           cp webapp/app-journal.js _site/app-journal.js
           cp webapp/app-substances.js _site/app-substances.js
           cp webapp/app-experience.js _site/app-experience.js
@@ -141,6 +143,7 @@ jobs:
           test -s _site/app-assisted-calibration.js
           test -s _site/app-patient-hub.js
           test -s _site/app-clinical-sentinel.js
+          test -s _site/app-ux-orchestrator.js
           test -s _site/app-ptbr-shell.js
       - name: Check JavaScript syntax
         shell: bash
