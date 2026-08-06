@@ -58,6 +58,8 @@ jobs:
           test -s _site/app-ux-orchestrator.js
           test -s _site/app-deep-patient-desktop.js
           test -s _site/app-deep-patient-nav.js
+          test -s _site/app-deep-patient-insights.js
+          test -s _site/app-desktop-shell.js
       - name: Check JavaScript syntax
         shell: bash
         run: |
