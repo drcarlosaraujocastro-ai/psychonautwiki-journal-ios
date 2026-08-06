@@ -7,47 +7,7 @@ on:
     paths:
       - '.github/workflows/iphone-pages-direct.yml'
       - 'iphone-webapp/**'
-      - 'webapp/app-core.js'
-      - 'webapp/app-clinical-engine.js'
-      - 'webapp/app-clinical-ui.js'
-      - 'webapp/app-clinical.js'
-      - 'webapp/app-clinical-reasoning.js'
-      - 'webapp/app-clinical-reasoning-extra.js'
-      - 'webapp/app-clinical-shortcuts.js'
-      - 'webapp/app-clinical-nav.js'
-      - 'webapp/app-clinical-force-nav.js'
-      - 'webapp/app-clinical-hooks.js'
-      - 'webapp/app-storage-guard.js'
-      - 'webapp/app-ptbr.js'
-      - 'webapp/app-ptbr-shell.js'
-      - 'webapp/app-stability-ui.js'
-      - 'webapp/app-clinical-suite.js'
-      - 'webapp/app-inventory-ledger.js'
-      - 'webapp/app-inventory-ledger-bridge.js'
-      - 'webapp/app-advanced-pharmacology-v2.js'
-      - 'webapp/app-smart-pkpd-lab.js'
-      - 'webapp/app-smart-pkpd-residual-v2.js'
-      - 'webapp/app-formulation-manager.js'
-      - 'webapp/app-regimen-intelligence.js'
-      - 'webapp/app-personal-analytics.js'
-      - 'webapp/app-diagnostics.js'
-      - 'webapp/app-live-effects-v2.js'
-      - 'webapp/app-smart-checkin-v2.js'
-      - 'webapp/app-workout.js'
-      - 'webapp/app-workout-analytics.js'
-      - 'webapp/app-workout-progress-v2.js'
-      - 'webapp/app-assisted-calibration.js'
-      - 'webapp/app-patient-hub.js'
-      - 'webapp/app-clinical-sentinel.js'
-      - 'webapp/app-ux-orchestrator.js'
-      - 'webapp/app-journal.js'
-      - 'webapp/app-substances.js'
-      - 'webapp/app-experience.js'
-      - 'webapp/app-observed-response.js'
-      - 'webapp/app-safer-settings.js'
-      - 'webapp/app-custom-data.js'
-      - 'webapp/app-events.js'
-      - 'webapp/icon.svg'
+      - 'webapp/**'
       - 'PsychonautWiki Journal/substances.json'
       - 'PsychonautWiki Journal/Assets.xcassets/AppIcon.appiconset/**'
 
@@ -77,46 +37,7 @@ jobs:
           cp iphone-webapp/app.css _site/app.css
           cp iphone-webapp/manifest.webmanifest _site/manifest.webmanifest
           cp iphone-webapp/sw.js _site/sw.js
-          cp webapp/app-core.js _site/app-core.js
-          cp webapp/app-clinical-engine.js _site/app-clinical-engine.js
-          cp webapp/app-clinical-ui.js _site/app-clinical-ui.js
-          cp webapp/app-clinical.js _site/app-clinical.js
-          cp webapp/app-clinical-reasoning.js _site/app-clinical-reasoning.js
-          cp webapp/app-clinical-reasoning-extra.js _site/app-clinical-reasoning-extra.js
-          cp webapp/app-clinical-shortcuts.js _site/app-clinical-shortcuts.js
-          cp webapp/app-clinical-nav.js _site/app-clinical-nav.js
-          cp webapp/app-clinical-force-nav.js _site/app-clinical-force-nav.js
-          cp webapp/app-clinical-hooks.js _site/app-clinical-hooks.js
-          cp webapp/app-storage-guard.js _site/app-storage-guard.js
-          cp webapp/app-ptbr.js _site/app-ptbr.js
-          cp webapp/app-ptbr-shell.js _site/app-ptbr-shell.js
-          cp webapp/app-stability-ui.js _site/app-stability-ui.js
-          cp webapp/app-clinical-suite.js _site/app-clinical-suite.js
-          cp webapp/app-inventory-ledger.js _site/app-inventory-ledger.js
-          cp webapp/app-inventory-ledger-bridge.js _site/app-inventory-ledger-bridge.js
-          cp webapp/app-advanced-pharmacology-v2.js _site/app-advanced-pharmacology-v2.js
-          cp webapp/app-smart-pkpd-lab.js _site/app-smart-pkpd-lab.js
-          cp webapp/app-smart-pkpd-residual-v2.js _site/app-smart-pkpd-residual-v2.js
-          cp webapp/app-formulation-manager.js _site/app-formulation-manager.js
-          cp webapp/app-regimen-intelligence.js _site/app-regimen-intelligence.js
-          cp webapp/app-personal-analytics.js _site/app-personal-analytics.js
-          cp webapp/app-diagnostics.js _site/app-diagnostics.js
-          cp webapp/app-live-effects-v2.js _site/app-live-effects-v2.js
-          cp webapp/app-smart-checkin-v2.js _site/app-smart-checkin-v2.js
-          cp webapp/app-workout.js _site/app-workout.js
-          cp webapp/app-workout-analytics.js _site/app-workout-analytics.js
-          cp webapp/app-workout-progress-v2.js _site/app-workout-progress-v2.js
-          cp webapp/app-assisted-calibration.js _site/app-assisted-calibration.js
-          cp webapp/app-patient-hub.js _site/app-patient-hub.js
-          cp webapp/app-clinical-sentinel.js _site/app-clinical-sentinel.js
-          cp webapp/app-ux-orchestrator.js _site/app-ux-orchestrator.js
-          cp webapp/app-journal.js _site/app-journal.js
-          cp webapp/app-substances.js _site/app-substances.js
-          cp webapp/app-experience.js _site/app-experience.js
-          cp webapp/app-observed-response.js _site/app-observed-response.js
-          cp webapp/app-safer-settings.js _site/app-safer-settings.js
-          cp webapp/app-custom-data.js _site/app-custom-data.js
-          cp webapp/app-events.js _site/app-events.js
+          for f in webapp/*.js; do cp "$f" _site/; done
           cp webapp/icon.svg _site/icon.svg
           cp 'PsychonautWiki Journal/substances.json' _site/data/substances.json
           cp 'PsychonautWiki Journal/Assets.xcassets/AppIcon.appiconset/196.png' _site/app-icon-196.png
@@ -130,21 +51,13 @@ jobs:
           test -s _site/sw.js
           test -s _site/data/substances.json
           test -s _site/app-smart-pkpd-lab.js
-          test -s _site/app-smart-pkpd-residual-v2.js
-          test -s _site/app-personal-analytics.js
-          test -s _site/app-regimen-intelligence.js
-          test -s _site/app-formulation-manager.js
-          test -s _site/app-diagnostics.js
           test -s _site/app-live-effects-v2.js
           test -s _site/app-smart-checkin-v2.js
           test -s _site/app-workout.js
-          test -s _site/app-workout-analytics.js
-          test -s _site/app-workout-progress-v2.js
-          test -s _site/app-assisted-calibration.js
           test -s _site/app-patient-hub.js
-          test -s _site/app-clinical-sentinel.js
           test -s _site/app-ux-orchestrator.js
-          test -s _site/app-ptbr-shell.js
+          test -s _site/app-deep-patient-desktop.js
+          test -s _site/app-deep-patient-nav.js
       - name: Check JavaScript syntax
         shell: bash
         run: |
