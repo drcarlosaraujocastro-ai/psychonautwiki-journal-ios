@@ -60,6 +60,10 @@ jobs:
           test -s _site/app-deep-patient-nav.js
           test -s _site/app-deep-patient-insights.js
           test -s _site/app-desktop-shell.js
+          test -s _site/app-library-knowledge-v6.js
+          test -s _site/app-pharm-knowledge-graph-v6.js
+          test -s _site/app-article-intelligence-v6.js
+          test -s _site/app-interaction-engine-v7.js
       - name: Check JavaScript syntax
         shell: bash
         run: |
