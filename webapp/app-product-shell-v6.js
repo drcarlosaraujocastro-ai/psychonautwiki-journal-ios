@@ -12,7 +12,15 @@
     clinical:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M3 12h18"/><path d="M7 7h10v10H7z"/></svg>',
     insights:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9M9 19v-5M14 19V5M19 19v-9"/><path d="m4 8 5 3 5-7 5 4"/></svg>'
   };
-  function activeId(){const h=location.hash.replace('#','');if(h==='substances')return'library';if(['library','tools','clinical','insights','journal'].includes(h))return h;return currentTab==='substances'?'library':currentTab||'journal'}
+  function activeId(){
+    const h=location.hash.replace('#','');
+    if(['substances','library'].includes(h))return'library';
+    if(['tools','workout','safer','settings','patient','today'].includes(h))return'tools';
+    if(['clinical'].includes(h))return'clinical';
+    if(['insights','stats'].includes(h))return'insights';
+    if(h==='journal')return'journal';
+    if(currentTab==='substances')return'library';if(['workout','safer','settings','patient'].includes(currentTab))return'tools';return currentTab||'journal'
+  }
   function renderTabs(){const el=$('#tabbar');if(!el)return;const a=activeId(),items=[['journal','Journal'],['library','Biblioteca'],['tools','Ferramentas'],['clinical','Clínico'],['insights','Insights']];el.innerHTML=items.map(([id,label])=>`<button class="tab ${a===id?'active':''}" data-v6-tab="${id}">${ICON[id]}<span>${label}</span></button>`).join('')}
   const legacy=window.renderTab;
   window.tabs=renderTabs;
